@@ -1,0 +1,84 @@
+import { defineStore } from 'pinia'
+import { webhooks } from '../config/webhooks'
+
+export const useTemplateStore = defineStore('template', {
+  state: () => ({
+    templates: [],
+    isLoading: false,
+    error: null
+  }),
+
+  actions: {
+    async fetchTemplates() {
+      try {
+        this.isLoading = true
+        const response = await fetch(webhooks.templates.list)
+        const data = await response.json()
+        this.templates = data
+      } catch (error) {
+        this.error = error.message
+      } finally {
+        this.isLoading = false
+      }
+    },
+
+    async createTemplate(template) {
+      try {
+        this.isLoading = true
+        const response = await fetch(webhooks.templates.create, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(template)
+        })
+        const data = await response.json()
+        this.templates.push(data)
+      } catch (error) {
+        this.error = error.message
+      } finally {
+        this.isLoading = false
+      }
+    },
+
+    async updateTemplate(template) {
+      try {
+        this.isLoading = true
+        const response = await fetch(webhooks.templates.update, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(template)
+        })
+        const data = await response.json()
+        const index = this.templates.findIndex(t => t.id === template.id)
+        if (index !== -1) {
+          this.templates[index] = data
+        }
+      } catch (error) {
+        this.error = error.message
+      } finally {
+        this.isLoading = false
+      }
+    },
+
+    async validateTemplate(template) {
+      try {
+        this.isLoading = true
+        const response = await fetch(webhooks.validation.validate, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(template)
+        })
+        return await response.json()
+      } catch (error) {
+        this.error = error.message
+      } finally {
+        this.isLoading = false
+      }
+    }
+  }
+})
