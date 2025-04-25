@@ -9,8 +9,13 @@
         <button @click="downloadList" class="text-blue-600 hover:text-blue-800">
           <i class="fas fa-download"></i>
         </button>
-        <button @click="deleteList" class="text-red-600 hover:text-red-800">
-          <i class="fas fa-trash"></i>
+        <button 
+          @click="deleteList" 
+          class="text-red-600 hover:text-red-800"
+          :disabled="isDeleting"
+        >
+          <i v-if="!isDeleting" class="fas fa-trash"></i>
+          <i v-else class="fas fa-spinner fa-spin"></i>
         </button>
       </div>
     </div>
@@ -33,6 +38,7 @@
 </template>
 
 <script setup>
+import { ref } from 'vue'
 import { defineProps } from 'vue'
 import { useToast } from 'vue-toastification'
 import { webhooks } from '@/config/webhooks'
@@ -44,6 +50,11 @@ const props = defineProps({
   }
 })
 
+const isDeleting = ref(false)
+const toast = useToast()
+const emit = defineEmits(['download', 'deleted'])
+
+// Move formatDate function before it's used and make it a const
 const formatDate = (dateString) => {
   if (!dateString) return 'Data inválida'
   
@@ -58,23 +69,21 @@ const formatDate = (dateString) => {
   }).format(date)
 }
 
-const toast = useToast()
-
-const emit = defineEmits(['download', 'deleted'])
-
 const deleteList = async () => {
   if (!confirm('Tem certeza que deseja excluir esta lista?')) {
     return
   }
 
+  isDeleting.value = true
+
   try {
     const response = await fetch(`${webhooks.validation.delete}`, {
-      method: 'POST',
+      method: 'DELETE',
       headers: {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        id: props.list.id
+        list_id: props.list.id
       })
     })
 
@@ -87,6 +96,8 @@ const deleteList = async () => {
   } catch (error) {
     console.error('Erro ao excluir lista:', error)
     toast.error('Erro ao excluir lista')
+  } finally {
+    isDeleting.value = false
   }
 }
 
