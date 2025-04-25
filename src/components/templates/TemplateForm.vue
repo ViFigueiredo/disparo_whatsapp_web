@@ -1,5 +1,5 @@
 <template>
-  <form @submit.prevent="handleSubmit" class="space-y-6">
+  <form @submit.prevent="handleSubmit" class="space-y-4">
     <!-- Nome do Template -->
     <div>
       <label class="block text-sm font-medium text-gray-700">
@@ -93,13 +93,12 @@
         Lista de Leads Validada
       </label>
       <select
-        v-model="form.validationList"
-        required
-        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+        v-model="form.validationListId"
+        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
       >
         <option value="">Selecione uma lista</option>
-        <option v-for="list in validationLists" :key="list.id" :value="list">
-          {{ list.name }} ({{ list.validLeads }} leads válidos)
+        <option v-for="list in validationLists" :key="list.id" :value="list.id">
+          {{ list.name }}
         </option>
       </select>
     </div>
@@ -167,33 +166,25 @@ const validationLists = ref([])
 const fetchValidationLists = async () => {
   try {
     const response = await fetch(webhooks.validation.list)
-    // Verifica o content-type da resposta
-    const contentType = response.headers.get('content-type')
-    if (!contentType || !contentType.includes('application/json')) {
-      throw new Error('O servidor retornou um formato inválido. Esperado: JSON')
-    }
-
     if (!response.ok) {
-      throw new Error(`Erro ao carregar listas: ${response.status} ${response.statusText}`)
+      throw new Error('Erro ao carregar listas de validação')
     }
+    const data = await response.json()
     
-    let data
-    try {
-      data = await response.json()
-    } catch (error) {
-    console.error('Erro ao carregar listas:', error)
-    toast.error(`Erro ao carregar listas: ${error.message}`)
-    validationLists.value = []
-    }
-    
-    validationLists.value = data
+    // Extrai as listas do segundo objeto do array que contém a chave "lists"
+    const lists = data[1]?.lists || []
+    validationLists.value = lists.map(list => ({
+      id: list.id,
+      name: list.name,
+      leads: list.leads || []
+    }))
   } catch (error) {
     console.error('Erro ao carregar listas:', error)
-    toast.error(`Erro ao carregar listas: ${error.message}`)
-    validationLists.value = []
+    toast.error('Erro ao carregar listas de validação')
   }
 }
 
+// Remova o onMounted duplicado e mantenha apenas um
 onMounted(async () => {
   await Promise.all([
     fetchConnections(),
@@ -205,19 +196,23 @@ onMounted(async () => {
   }
 })
 
-const handleSubmit = () => {
-  const formData = { 
-    ...form.value,
-    leads: form.value.validationList?.leads || []
-  }
-  emit('submit', formData)
-}
-
 const form = ref({
   name: '',
   message: '',
   customFields: [],
   connection: '',
+  validationListId: '', // Corrigido o nome da propriedade
   validationList: null
 })
+
+const handleSubmit = () => {
+  // Encontra a lista selecionada
+  const selectedList = validationLists.value.find(list => list.id === form.value.validationListId)
+  
+  const formData = { 
+    ...form.value,
+    leads: selectedList?.leads || []
+  }
+  emit('submit', formData)
+}
 </script>
