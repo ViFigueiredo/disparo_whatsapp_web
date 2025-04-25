@@ -143,10 +143,14 @@ const handleFileUpload = (event) => {
       const cleanText = text.replace(/^\uFEFF/, '').trim()
       const lines = cleanText.split(/\r?\n/)
       
-      // Limpa e normaliza o cabeçalho
-      const headers = lines[0].toLowerCase().trim().split(',').map(h => h.trim())
+      // Normalização mais flexível do cabeçalho
+      const headerLine = lines[0].toLowerCase().trim()
+      const headers = headerLine.split(',').map(h => h.trim())
       
-      if (!headers.includes('nome') || !headers.includes('numero')) {
+      const nomeIndex = headers.findIndex(h => h.includes('nome'))
+      const numeroIndex = headers.findIndex(h => h.includes('numero'))
+      
+      if (nomeIndex === -1 || numeroIndex === -1) {
         toast.error('O arquivo CSV deve conter as colunas "nome" e "numero"')
         event.target.value = ''
         return
@@ -155,14 +159,43 @@ const handleFileUpload = (event) => {
       form.value.leads = lines.slice(1)
         .filter(line => line.trim())
         .map(line => {
-          // Divide a linha considerando possíveis aspas
           const values = line.split(',').map(v => v.trim().replace(/^["']|["']$/g, ''))
+          
+          // Processa o número, lidando com notação científica e números normais
+          let numero = values[numeroIndex] || ''
+          if (numero) {
+            try {
+              // Remove caracteres não numéricos mantendo E, e, +, - e ponto
+              numero = numero.replace(/[^\d.Ee+-]/g, '')
+              
+              // Verifica se é notação científica
+              if (numero.includes('E') || numero.includes('e')) {
+                const numberValue = Number(numero)
+                if (!isNaN(numberValue)) {
+                  numero = Math.round(numberValue).toString()
+                }
+              } else {
+                // Remove todos os caracteres não numéricos para números normais
+                numero = numero.replace(/[^\d]/g, '')
+              }
+            } catch (error) {
+              console.error('Erro ao processar número:', error)
+              numero = numero.replace(/[^\d]/g, '')
+            }
+          }
+
           return {
-            nome: values[headers.indexOf('nome')] || '',
-            numero: values[headers.indexOf('numero')]?.replace(/[^0-9]/g, '') || ''
+            nome: values[nomeIndex] || '',
+            numero: numero
           }
         })
-        .filter(lead => lead.nome && lead.numero) // Remove linhas vazias
+        .filter(lead => {
+          const isValid = lead.nome && lead.numero && lead.numero.length >= 10
+          if (!isValid) {
+            console.warn('Lead inválido encontrado:', lead)
+          }
+          return isValid
+        })
 
       if (form.value.leads.length > 0) {
         toast.success(`${form.value.leads.length} leads carregados com sucesso!`)
