@@ -7,7 +7,9 @@ export const webhooks = {
   },
   validation: {
     validate: import.meta.env.VITE_WEBHOOK_VALIDATION,
-    status: import.meta.env.VITE_WEBHOOK_VALIDATION_STATUS
+    status: import.meta.env.VITE_WEBHOOK_VALIDATION_STATUS,
+    list: import.meta.env.VITE_WEBHOOK_VALIDATION_LIST,
+    save: import.meta.env.VITE_WEBHOOK_VALIDATION_SAVE
   },
   dispatch: {
     send: import.meta.env.VITE_WEBHOOK_DISPATCH_SEND,

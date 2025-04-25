@@ -62,6 +62,12 @@
             class="flex-1 rounded-md border-gray-300"
             placeholder="Nome do campo"
           />
+          <input
+            v-model="field.value"
+            type="text"
+            class="flex-1 rounded-md border-gray-300"
+            placeholder="Valor padrão"
+          />
           <button
             type="button"
             @click="removeCustomField(index)"
@@ -81,22 +87,21 @@
       </div>
     </div>
 
-    <!-- Upload CSV -->
+    <!-- Seleção de Lista Validada -->
     <div>
       <label class="block text-sm font-medium text-gray-700">
-        Arquivo CSV
+        Lista de Leads Validada
       </label>
-      <input
-        type="file"
-        accept=".csv"
-        @change="handleFileUpload"
-        class="mt-1 block w-full text-sm text-gray-500
-          file:mr-4 file:py-2 file:px-4
-          file:rounded-md file:border-0
-          file:text-sm file:font-semibold
-          file:bg-blue-50 file:text-blue-700
-          hover:file:bg-blue-100"
-      />
+      <select
+        v-model="form.validationList"
+        required
+        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+      >
+        <option value="">Selecione uma lista</option>
+        <option v-for="list in validationLists" :key="list.id" :value="list">
+          {{ list.name }} ({{ list.validLeads }} leads válidos)
+        </option>
+      </select>
     </div>
 
     <!-- Botões -->
@@ -121,6 +126,9 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { webhooks } from '@/config/webhooks'
+import { useToast } from 'vue-toastification'
+
+const toast = useToast()
 
 const props = defineProps({
   template: {
@@ -132,13 +140,13 @@ const props = defineProps({
 const emit = defineEmits(['submit', 'cancel'])
 const connections = ref([])
 
-const form = ref({
-  name: '',
-  message: '',
-  customFields: [],
-  contacts: [],
-  connection: ''
-})
+const addCustomField = () => {
+  form.value.customFields.push({ name: '', value: '' })
+}
+
+const removeCustomField = (index) => {
+  form.value.customFields.splice(index, 1)
+}
 
 const fetchConnections = async () => {
   try {
@@ -150,56 +158,66 @@ const fetchConnections = async () => {
     connections.value = data
   } catch (error) {
     console.error('Erro ao carregar conexões:', error)
-    // Aqui você pode adicionar uma notificação de erro para o usuário se desejar
+    toast.error('Erro ao carregar conexões')
+  }
+}
+
+const validationLists = ref([])
+
+const fetchValidationLists = async () => {
+  try {
+    const response = await fetch(webhooks.validation.list)
+    // Verifica o content-type da resposta
+    const contentType = response.headers.get('content-type')
+    if (!contentType || !contentType.includes('application/json')) {
+      throw new Error('O servidor retornou um formato inválido. Esperado: JSON')
+    }
+
+    if (!response.ok) {
+      throw new Error(`Erro ao carregar listas: ${response.status} ${response.statusText}`)
+    }
+    
+    let data
+    try {
+      data = await response.json()
+    } catch (error) {
+    console.error('Erro ao carregar listas:', error)
+    toast.error(`Erro ao carregar listas: ${error.message}`)
+    validationLists.value = []
+    }
+    
+    validationLists.value = data
+  } catch (error) {
+    console.error('Erro ao carregar listas:', error)
+    toast.error(`Erro ao carregar listas: ${error.message}`)
+    validationLists.value = []
   }
 }
 
 onMounted(async () => {
-  // Carrega as conexões assim que o componente é montado
-  await fetchConnections()
+  await Promise.all([
+    fetchConnections(),
+    fetchValidationLists()
+  ])
   
-  // Se estiver editando um template existente, preenche o formulário
   if (props.template) {
     form.value = { ...props.template }
   }
 })
 
-const addCustomField = () => {
-  form.value.customFields.push({ name: '' })
-}
-
-const removeCustomField = (index) => {
-  form.value.customFields.splice(index, 1)
-}
-
-const handleFileUpload = async (event) => {
-  const file = event.target.files[0]
-  if (file) {
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      const text = e.target.result
-      const lines = text.split('\n')
-      const headers = lines[0].toLowerCase().split(',')
-      
-      if (!headers.includes('nome') || !headers.includes('numero')) {
-        alert('O arquivo CSV deve conter as colunas "nome" e "numero"')
-        event.target.value = ''
-        return
-      }
-
-      form.value.contacts = lines.slice(1).map(line => {
-        const values = line.split(',')
-        return headers.reduce((obj, header, index) => {
-          obj[header.trim()] = values[index]?.trim()
-          return obj
-        }, {})
-      })
-    }
-    reader.readAsText(file)
-  }
-}
-
 const handleSubmit = () => {
-  emit('submit', { ...form.value })
+  const formData = { 
+    ...form.value,
+    leads: form.value.validationList?.leads || []
+  }
+  emit('submit', formData)
 }
+
+const form = ref({
+  name: '',
+  message: '',
+  customFields: [],
+  connection: '',
+  validationList: null
+})
 </script>
