@@ -12,5 +12,8 @@ export const webhooks = {
   dispatch: {
     send: import.meta.env.VITE_WEBHOOK_DISPATCH_SEND,
     status: import.meta.env.VITE_WEBHOOK_DISPATCH_STATUS
+  },
+  connections: {
+    list: import.meta.env.VITE_WEBHOOK_CONNECTIONS_LIST
   }
 }

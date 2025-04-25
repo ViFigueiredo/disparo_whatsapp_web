@@ -14,6 +14,23 @@
       />
     </div>
 
+    <!-- Conexão -->
+    <div>
+      <label class="block text-sm font-medium text-gray-700">
+        Conexão
+      </label>
+      <select
+        v-model="form.connection"
+        required
+        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+      >
+      <option value="">Selecione uma conexão</option>
+        <option v-for="connection in connections" :key="connection.ownerJid" :value="connection">
+          {{ connection.name }}
+        </option>
+      </select>
+    </div>
+
     <!-- Mensagem -->
     <div>
       <label class="block text-sm font-medium text-gray-700">
@@ -103,6 +120,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { webhooks } from '@/config/webhooks'
 
 const props = defineProps({
   template: {
@@ -112,12 +130,38 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['submit', 'cancel'])
+const connections = ref([])
 
 const form = ref({
   name: '',
   message: '',
   customFields: [],
-  contacts: []
+  contacts: [],
+  connection: ''
+})
+
+const fetchConnections = async () => {
+  try {
+    const response = await fetch(webhooks.connections.list)
+    if (!response.ok) {
+      throw new Error('Erro ao buscar conexões')
+    }
+    const data = await response.json()
+    connections.value = data
+  } catch (error) {
+    console.error('Erro ao carregar conexões:', error)
+    // Aqui você pode adicionar uma notificação de erro para o usuário se desejar
+  }
+}
+
+onMounted(async () => {
+  // Carrega as conexões assim que o componente é montado
+  await fetchConnections()
+  
+  // Se estiver editando um template existente, preenche o formulário
+  if (props.template) {
+    form.value = { ...props.template }
+  }
 })
 
 const addCustomField = () => {
@@ -158,10 +202,4 @@ const handleFileUpload = async (event) => {
 const handleSubmit = () => {
   emit('submit', { ...form.value })
 }
-
-onMounted(() => {
-  if (props.template) {
-    form.value = { ...props.template }
-  }
-})
 </script>
