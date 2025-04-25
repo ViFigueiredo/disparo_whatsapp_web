@@ -14,6 +14,8 @@
         v-for="list in validationLists"
         :key="list.id"
         :list="list"
+        @download="downloadValidatedCSV"
+        @deleted="handleListDeleted"
       />
     </div>
 
@@ -77,7 +79,7 @@
           <div class="mt-4 flex justify-center">
             <button
               type="button"
-              @click="downloadValidatedCSV"
+              @click="downloadValidatedCSV(list.id)"
               class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700"
             >
               <i class="fas fa-download mr-2"></i>
@@ -296,9 +298,13 @@ const handleSubmit = async () => {
   }
 }
 
+const handleListDeleted = (listId) => {
+  validationLists.value = validationLists.value.filter(list => list.id !== listId)
+}
+
 const fetchValidationLists = async () => {
   try {
-    const response = await fetch(webhooks.validation.list)
+    const response = await fetch(webhooks.validation.list)    
     
     // Verifica o content-type da resposta
     const contentType = response.headers.get('content-type')
@@ -311,7 +317,11 @@ const fetchValidationLists = async () => {
     }
 
     const data = await response.json()
-    validationLists.value = data
+    
+    // Extrai as listas do segundo objeto do array que contém a chave "lists"
+    const lists = data[1]?.lists || []
+    validationLists.value = lists
+    
   } catch (error) {
     console.error('Erro ao carregar listas:', error)
     toast.error(`Erro ao carregar listas: ${error.message}`)
@@ -341,35 +351,53 @@ const resetForm = () => {
   }
 }
 
-const downloadValidatedCSV = () => {
-  // Cria o conteúdo do CSV
-  const headers = ['nome,numero,validado\n']
-  const csvContent = form.value.leads.map(lead => {
-    return `${lead.nome},${lead.numero},${lead.exists ? 'Sim' : 'Não'}`
-  }).join('\n')
+const downloadValidatedCSV = async (listId) => {
+  try {
+    const response = await fetch(webhooks.validation.list)
+    const data = await response.json()
+    
+    // Pega os leads do primeiro objeto do array
+    const allLeads = data[0]?.leads || []
+    
+    // Filtra os leads pela lista específica
+    const listLeads = allLeads.filter(lead => lead.list_id === listId)
 
-  // Cria o blob com o conteúdo do CSV
-  const blob = new Blob([headers + csvContent], { type: 'text/csv;charset=utf-8;' })
-  
-  // Cria o link de download
-  const link = document.createElement('a')
-  const url = URL.createObjectURL(blob)
-  
-  // Configura o nome do arquivo com timestamp
-  const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
-  const fileName = `leads_validados_${timestamp}.csv`
-  
-  // Configura e dispara o download
-  link.setAttribute('href', url)
-  link.setAttribute('download', fileName)
-  document.body.appendChild(link)
-  link.click()
-  
-  // Limpa o objeto URL e remove o link
-  setTimeout(() => {
+    if (listLeads.length === 0) {
+      toast.warning('Nenhum lead encontrado para esta lista')
+      return
+    }
+
+    // Prepara os dados para o CSV com BOM para UTF-8
+    const BOM = '\uFEFF'
+    const csvContent = BOM + [
+      // Cabeçalho
+      ['nome', 'numero', 'status'].join(','),
+      // Dados
+      ...listLeads.map(lead => [
+        lead.nome.split(';')[0], // Remove o número do nome
+        lead.numero.replace(/^e/, ''), // Remove o 'e' do início do número se existir
+        lead.exists ? 'Válido' : 'Inválido'
+      ].join(','))
+    ].join('\n')
+
+    // Cria o blob especificando UTF-8
+    const blob = new Blob([csvContent], { 
+      type: 'text/csv;charset=utf-8'
+    })
+    const link = document.createElement('a')
+    const url = URL.createObjectURL(blob)
+    link.setAttribute('href', url)
+    link.setAttribute('download', `lista_validada_${listId}.csv`)
+    document.body.appendChild(link)
+    link.click()
     document.body.removeChild(link)
     URL.revokeObjectURL(url)
-  }, 100)
+
+    toast.success('Download iniciado com sucesso!')
+  } catch (error) {
+    console.error('Erro ao gerar CSV:', error)
+    toast.error('Erro ao gerar arquivo CSV')
+  }
 }
 </script>
 

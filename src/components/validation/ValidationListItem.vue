@@ -1,40 +1,32 @@
 <template>
-  <div class="bg-white shadow rounded-lg p-6">
+  <div class="bg-white shadow rounded-lg p-6 mb-4">
     <div class="flex justify-between items-start">
       <div>
         <h3 class="text-lg font-medium text-gray-900">{{ list.name }}</h3>
-        <p class="mt-1 text-sm text-gray-500">
-          Criado em: {{ new Date(list.createdAt).toLocaleDateString() }}
-        </p>
+        <p class="text-sm text-gray-500">Criado em: {{ formatDate(list.created_at) }}</p>
       </div>
       <div class="flex gap-2">
-        <button
-          class="text-gray-400 hover:text-gray-500"
-          @click="downloadCsv"
-        >
+        <button @click="downloadList" class="text-blue-600 hover:text-blue-800">
           <i class="fas fa-download"></i>
         </button>
-        <button
-          class="text-red-400 hover:text-red-500"
-          @click="deleteList"
-        >
+        <button @click="deleteList" class="text-red-600 hover:text-red-800">
           <i class="fas fa-trash"></i>
         </button>
       </div>
     </div>
 
-    <div class="mt-4 grid grid-cols-3 gap-4 text-center">
-      <div class="bg-gray-50 rounded p-3">
-        <p class="text-sm font-medium text-gray-500">Total de Leads</p>
-        <p class="mt-1 text-lg font-semibold text-gray-900">{{ list.totalLeads }}</p>
+    <div class="mt-4 grid grid-cols-3 gap-4">
+      <div class="text-center">
+        <p class="text-sm text-gray-500">Total de Leads</p>
+        <p class="text-2xl font-bold text-gray-900">{{ list.total_leads }}</p>
       </div>
-      <div class="bg-green-50 rounded p-3">
-        <p class="text-sm font-medium text-green-500">Números Válidos</p>
-        <p class="mt-1 text-lg font-semibold text-green-600">{{ list.validLeads }}</p>
+      <div class="text-center">
+        <p class="text-sm text-gray-500">Números Válidos</p>
+        <p class="text-2xl font-bold text-green-600">{{ list.valid_leads }}</p>
       </div>
-      <div class="bg-red-50 rounded p-3">
-        <p class="text-sm font-medium text-red-500">Números Inválidos</p>
-        <p class="mt-1 text-lg font-semibold text-red-600">{{ list.invalidLeads }}</p>
+      <div class="text-center">
+        <p class="text-sm text-gray-500">Números Inválidos</p>
+        <p class="text-2xl font-bold text-red-600">{{ list.invalid_leads }}</p>
       </div>
     </div>
   </div>
@@ -43,6 +35,7 @@
 <script setup>
 import { defineProps } from 'vue'
 import { useToast } from 'vue-toastification'
+import { webhooks } from '@/config/webhooks'
 
 const props = defineProps({
   list: {
@@ -51,15 +44,53 @@ const props = defineProps({
   }
 })
 
-const toast = useToast()
-
-const downloadCsv = () => {
-  // Implementar lógica de download
-  toast.info('Download iniciado')
+const formatDate = (dateString) => {
+  if (!dateString) return 'Data inválida'
+  
+  const date = new Date(dateString)
+  return new Intl.DateTimeFormat('pt-BR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+  }).format(date)
 }
 
-const deleteList = () => {
-  // Implementar lógica de exclusão
-  toast.success('Lista excluída com sucesso')
+const toast = useToast()
+
+const emit = defineEmits(['download', 'deleted'])
+
+const deleteList = async () => {
+  if (!confirm('Tem certeza que deseja excluir esta lista?')) {
+    return
+  }
+
+  try {
+    const response = await fetch(`${webhooks.validation.delete}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        id: props.list.id
+      })
+    })
+
+    if (!response.ok) {
+      throw new Error('Erro ao excluir lista')
+    }
+
+    toast.success('Lista excluída com sucesso')
+    emit('deleted', props.list.id)
+  } catch (error) {
+    console.error('Erro ao excluir lista:', error)
+    toast.error('Erro ao excluir lista')
+  }
+}
+
+const downloadList = () => {
+  emit('download', props.list.id)
 }
 </script>
