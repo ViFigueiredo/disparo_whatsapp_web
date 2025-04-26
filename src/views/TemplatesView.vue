@@ -106,7 +106,7 @@ const cloneTemplate = (template) => {
 }
 
 const showPreview = (template) => {
-  console.log('Template selecionado:', template) // Adicionar log para debug
+  // console.log('Template selecionado:', template) // Adicionar log para debug
   if (template) {
     selectedTemplate.value = { ...template } // Criar uma cópia do template
     showDetailsModal.value = true

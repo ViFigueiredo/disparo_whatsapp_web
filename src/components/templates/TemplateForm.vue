@@ -170,7 +170,7 @@ const fetchValidationLists = async () => {
       throw new Error('Erro ao carregar listas de validação')
     }
     const data = await response.json()
-    console.log('Dados recebidos da API:', data)
+    // console.log('Dados recebidos da API:', data)
       
     // Extrai os leads do primeiro objeto do array
     const leads = data[0]?.leads || []
@@ -188,7 +188,7 @@ const fetchValidationLists = async () => {
       }
     })
     
-    console.log('Listas processadas:', validationLists.value)
+    // console.log('Listas processadas:', validationLists.value)
   } catch (error) {
     console.error('Erro ao carregar listas:', error)
     toast.error('Erro ao carregar listas de validação')
@@ -224,12 +224,12 @@ const form = ref({
 })
 
 const handleSubmit = () => {
-  console.log('ID da lista selecionada:', form.value.validationListId)
-  console.log('Todas as listas disponíveis:', validationLists.value)
+  // console.log('ID da lista selecionada:', form.value.validationListId)
+  // console.log('Todas as listas disponíveis:', validationLists.value)
   
   // Encontra a lista selecionada
   const selectedList = validationLists.value.find(list => list.id === form.value.validationListId)
-  console.log('Lista selecionada:', selectedList)
+  // console.log('Lista selecionada:', selectedList)
   
   if (!selectedList) {
     toast.error('Lista de validação não encontrada')
@@ -262,7 +262,7 @@ const handleSubmit = () => {
     output: form.value.output
   }
   
-  console.log('Dados do formulário a serem enviados:', formData)
+  // console.log('Dados do formulário a serem enviados:', formData)
   emit('submit', formData)
 }
 </script>

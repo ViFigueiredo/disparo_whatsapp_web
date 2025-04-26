@@ -16,11 +16,46 @@
         </div>
       </div>
 
-      <!-- Mensagem -->
+      <!-- Mensagem e Respostas -->
       <div class="space-y-2">
         <h4 class="text-sm font-medium text-gray-700">Mensagem</h4>
         <div class="bg-white p-4 rounded-lg border border-gray-200">
           <p class="whitespace-pre-wrap">{{ template.template_message }}</p>
+        </div>
+
+        <!-- Slider de Respostas -->
+        <div class="mt-4">
+          <h4 class="text-sm font-medium text-gray-700 mb-2">Mensagens Geradas pela IA</h4>
+          <div class="relative">
+            <div class="bg-white p-4 rounded-lg border border-gray-200">
+              <p class="whitespace-pre-wrap">{{ currentResposta }}</p>
+            </div>
+            
+            <!-- Controles do Slider -->
+            <div class="flex justify-between items-center mt-4">
+              <button 
+                @click="previousSlide"
+                class="px-3 py-1 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
+                :disabled="currentIndex === 0"
+              >
+                <i class="fas fa-chevron-left mr-1"></i>
+                Anterior
+              </button>
+              
+              <span class="text-sm text-gray-500">
+                {{ currentIndex + 1 }} de 5
+              </span>
+              
+              <button 
+                @click="nextSlide"
+                class="px-3 py-1 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
+                :disabled="currentIndex === 4"
+              >
+                Próxima
+                <i class="fas fa-chevron-right ml-1"></i>
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -29,7 +64,7 @@
         <h4 class="text-sm font-medium text-gray-700">Lista de Validação</h4>
         <div class="bg-white p-4 rounded-lg border border-gray-200">
           <div class="flex justify-between items-center">
-            <span class="text-sm font-medium text-gray-900">ID da Lista: {{ template.template_list_id }}</span>
+            <span class="text-sm font-medium text-gray-900">{{ template.template_list_name }}</span>
           </div>
         </div>
       </div>
@@ -50,7 +85,7 @@
 </template>
 
 <script setup>
-import { defineProps, defineEmits, onMounted, watch } from 'vue'
+import { defineProps, defineEmits, ref, computed } from 'vue'
 import BaseModal from '../common/BaseModal.vue'
 
 const props = defineProps({
@@ -64,10 +99,28 @@ const props = defineProps({
   }
 })
 
-// Adicionar watch para debug
-watch(() => props.template, (newVal) => {
-  console.log('Template recebido no modal:', newVal)
-}, { immediate: true })
+// Estado para o slider
+const currentIndex = ref(0)
+
+// Computed property para obter a resposta atual
+const currentResposta = computed(() => {
+  if (!props.template?.output) return ''
+  const respostaKey = `Resposta${currentIndex.value + 1}`
+  return props.template.output[respostaKey]
+})
+
+// Funções de controle do slider
+const nextSlide = () => {
+  if (currentIndex.value < 4) {
+    currentIndex.value++
+  }
+}
+
+const previousSlide = () => {
+  if (currentIndex.value > 0) {
+    currentIndex.value--
+  }
+}
 
 defineEmits(['update:show'])
 </script>
