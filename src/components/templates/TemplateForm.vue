@@ -20,12 +20,17 @@
         Conexão
       </label>
       <select
-        v-model="form.connection"
+        v-model="form.connectionId"
         required
         class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+        @change="updateSelectedConnection"
       >
-      <option value="">Selecione uma conexão</option>
-        <option v-for="connection in connections" :key="connection.ownerJid" :value="connection">
+        <option value="">Selecione uma conexão</option>
+        <option 
+          v-for="connection in connections" 
+          :key="connection.ownerJid" 
+          :value="connection.ownerJid"
+        >
           {{ connection.name }}
         </option>
       </select>
@@ -97,7 +102,11 @@
         class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
       >
         <option value="">Selecione uma lista</option>
-        <option v-for="list in validationLists" :key="list.id" :value="list.id">
+        <option 
+          v-for="list in validationLists" 
+          :key="list.id" 
+          :value="list.id"
+        >
           {{ list.name }}
         </option>
       </select>
@@ -123,7 +132,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { webhooks } from '@/config/webhooks'
 import { useToast } from 'vue-toastification'
 
@@ -137,83 +146,19 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['submit', 'cancel'])
+
+// Dados reativos
 const connections = ref([])
-
-const addCustomField = () => {
-  form.value.customFields.push({ name: '', value: '' })
-}
-
-const removeCustomField = (index) => {
-  form.value.customFields.splice(index, 1)
-}
-
-const fetchConnections = async () => {
-  try {
-    const response = await fetch(webhooks.connections.list)
-    if (!response.ok) {
-      throw new Error('Erro ao buscar conexões')
-    }
-    const data = await response.json()
-    connections.value = data
-  } catch (error) {
-    console.error('Erro ao carregar conexões:', error)
-    toast.error('Erro ao carregar conexões')
-  }
-}
-
 const validationLists = ref([])
-
-const fetchValidationLists = async () => {
-  try {
-    const response = await fetch(webhooks.validation.list)
-    if (!response.ok) {
-      throw new Error('Erro ao carregar listas de validação')
-    }
-    const data = await response.json()
-    // console.log('Dados recebidos da API:', data)
-      
-    // Extrai os leads do primeiro objeto do array
-    const leads = data[0]?.leads || []
-    
-    // Extrai as listas do segundo objeto do array
-    const lists = data[1]?.lists || []
-    
-    validationLists.value = lists.map(list => {
-      // Encontra os leads correspondentes a esta lista
-      const listLeads = leads.filter(lead => lead.list_id === list.id)
-      return {
-        id: list.id,
-        name: list.name,
-        leads: listLeads
-      }
-    })
-    
-    // console.log('Listas processadas:', validationLists.value)
-  } catch (error) {
-    console.error('Erro ao carregar listas:', error)
-    toast.error('Erro ao carregar listas de validação')
-  }
-}
-
-// Remova o onMounted duplicado e mantenha apenas um
-onMounted(async () => {
-  await Promise.all([
-    fetchConnections(),
-    fetchValidationLists()
-  ])
-  
-  if (props.template) {
-    form.value = { ...props.template }
-  }
-})
+const selectedConnection = ref(null)
 
 const form = ref({
   name: '',
   message: '',
   customFields: [],
-  connection: '',
+  connectionId: '',
+  connection: null,
   validationListId: null,
-  validationList: null,
   output: {
     Resposta1: '',
     Resposta2: '',
@@ -223,46 +168,128 @@ const form = ref({
   }
 })
 
+// Métodos
+const updateSelectedConnection = () => {
+  selectedConnection.value = connections.value.find(
+    c => c.ownerJid === form.value.connectionId
+  )
+  form.value.connection = selectedConnection.value
+}
+
+const addCustomField = () => {
+  form.value.customFields.push({ name: '', value: '' })
+}
+
+const removeCustomField = (index) => {
+  form.value.customFields.splice(index, 1)
+}
+
+// Fetch data
+const fetchConnections = async () => {
+  try {
+    const response = await fetch(webhooks.connections.list)
+    
+    if (!response.ok) throw new Error('Erro ao buscar conexões')
+    connections.value = await response.json()
+    console.log(connections.value);
+  } catch (error) {
+    console.error('Erro ao carregar conexões:', error)
+    toast.error('Erro ao carregar conexões')
+  }
+}
+
+const fetchValidationLists = async () => {
+  try {
+    const response = await fetch(webhooks.validation.list)
+    if (!response.ok) throw new Error('Erro ao carregar listas de validação')
+    const data = await response.json()
+    
+    const leads = data[0]?.leads || []
+    const lists = data[1]?.lists || []
+    
+    validationLists.value = lists.map(list => ({
+      id: list.id,
+      name: list.name,
+      leads: leads.filter(lead => lead.list_id === list.id)
+    }))
+  } catch (error) {
+    console.error('Erro ao carregar listas:', error)
+    toast.error('Erro ao carregar listas de validação')
+  }
+}
+
+// Inicialização
+const initializeForm = () => {
+  if (!props.template) return
+
+  // Preenche os campos básicos
+  form.value = {
+    ...form.value,
+    name: props.template.template_name || '',
+    message: props.template.template_message || '',
+    customFields: props.template.customFields || [],
+    output: props.template.output || form.value.output
+  }
+
+  // Define a conexão selecionada
+  if (props.template.template_connection) {
+    form.value.connectionId = props.template.template_connection.ownerJid
+    form.value.connection = props.template.template_connection
+  }
+
+  // Define a lista selecionada
+  if (props.template.template_list_id) {
+    form.value.validationListId = props.template.template_list_id
+  }
+}
+
+// Watch para quando os dados forem carregados
+watch([connections, validationLists], () => {
+  initializeForm()
+}, { deep: true })
+
+// Lifecycle
+onMounted(async () => {
+  try {
+    await Promise.all([fetchConnections(), fetchValidationLists()])
+    initializeForm()
+  } catch (error) {
+    console.error('Erro ao inicializar:', error)
+    toast.error('Erro ao carregar dados iniciais')
+  }
+})
+
+// Submit
 const handleSubmit = () => {
-  // console.log('ID da lista selecionada:', form.value.validationListId)
-  // console.log('Todas as listas disponíveis:', validationLists.value)
-  
-  // Encontra a lista selecionada
-  const selectedList = validationLists.value.find(list => list.id === form.value.validationListId)
-  // console.log('Lista selecionada:', selectedList)
-  
-  if (!selectedList) {
-    toast.error('Lista de validação não encontrada')
+  if (!form.value.connectionId) {
+    toast.error('Selecione uma conexão')
     return
   }
 
-  // Verifica se leads existe e é um array
-  if (!Array.isArray(selectedList.leads)) {
-    console.error('Leads não é um array:', selectedList.leads)
-    toast.error('Formato de leads inválido')
+  if (!form.value.validationListId) {
+    toast.error('Selecione uma lista de validação')
     return
   }
 
-  // Verifica se há leads
-  if (selectedList.leads.length === 0) {
-    console.warn('Lista sem leads:', selectedList)
+  const selectedList = validationLists.value.find(
+    list => list.id === form.value.validationListId
+  )
+
+  if (!selectedList || !selectedList.leads?.length) {
     toast.warning('A lista selecionada não possui leads')
     return
   }
 
-  const formData = { 
+  const formData = {
     ...form.value,
     validationList: selectedList,
     leads: selectedList.leads,
     template_name: form.value.name,
-    template_connection: form.value.connection,
     template_message: form.value.message,
     template_list_id: form.value.validationListId,
-    template_list_name: selectedList.name,
-    output: form.value.output
+    template_list_name: selectedList.name
   }
-  
-  // console.log('Dados do formulário a serem enviados:', formData)
+
   emit('submit', formData)
 }
 </script>
