@@ -170,14 +170,25 @@ const fetchValidationLists = async () => {
       throw new Error('Erro ao carregar listas de validação')
     }
     const data = await response.json()
+    console.log('Dados recebidos da API:', data)
     
-    // Extrai as listas do segundo objeto do array que contém a chave "lists"
+    // Extrai os leads do primeiro objeto do array
+    const leads = data[0]?.leads || []
+    
+    // Extrai as listas do segundo objeto do array
     const lists = data[1]?.lists || []
-    validationLists.value = lists.map(list => ({
-      id: list.id,
-      name: list.name,
-      leads: list.leads || []
-    }))
+    
+    validationLists.value = lists.map(list => {
+      // Encontra os leads correspondentes a esta lista
+      const listLeads = leads.filter(lead => lead.list_id === list.id)
+      return {
+        id: list.id,
+        name: list.name,
+        leads: listLeads
+      }
+    })
+    
+    console.log('Listas processadas:', validationLists.value)
   } catch (error) {
     console.error('Erro ao carregar listas:', error)
     toast.error('Erro ao carregar listas de validação')
@@ -201,18 +212,44 @@ const form = ref({
   message: '',
   customFields: [],
   connection: '',
-  validationListId: '', // Corrigido o nome da propriedade
+  validationListId: null, // Mudado de string vazia para null
   validationList: null
 })
 
 const handleSubmit = () => {
+  console.log('ID da lista selecionada:', form.value.validationListId)
+  console.log('Todas as listas disponíveis:', validationLists.value)
+  
   // Encontra a lista selecionada
   const selectedList = validationLists.value.find(list => list.id === form.value.validationListId)
+  console.log('Lista selecionada:', selectedList)
   
+  if (!selectedList) {
+    toast.error('Lista de validação não encontrada')
+    return
+  }
+
+  // Verifica se leads existe e é um array
+  if (!Array.isArray(selectedList.leads)) {
+    console.error('Leads não é um array:', selectedList.leads)
+    toast.error('Formato de leads inválido')
+    return
+  }
+
+  // Verifica se há leads
+  if (selectedList.leads.length === 0) {
+    console.warn('Lista sem leads:', selectedList)
+    toast.warning('A lista selecionada não possui leads')
+    return
+  }
+
   const formData = { 
     ...form.value,
-    leads: selectedList?.leads || []
+    validationList: selectedList,
+    leads: selectedList.leads
   }
+  
+  console.log('Dados do formulário a serem enviados:', formData)
   emit('submit', formData)
 }
 </script>
