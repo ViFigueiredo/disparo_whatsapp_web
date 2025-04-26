@@ -12,7 +12,7 @@
         </h3>
         <div class="flex items-center text-sm text-gray-500">
           <i class="fas fa-plug mr-2"></i>
-          <span>{{ template.connection || 'Conexão não definida' }}</span>
+          <span>{{ template.template_connection }}</span>
         </div>
       </div>
 
