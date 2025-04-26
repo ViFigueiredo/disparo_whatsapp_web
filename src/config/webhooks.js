@@ -3,7 +3,9 @@ export const webhooks = {
     list: import.meta.env.VITE_WEBHOOK_TEMPLATE_LIST,
     create: import.meta.env.VITE_WEBHOOK_TEMPLATE_CREATE,
     update: import.meta.env.VITE_WEBHOOK_TEMPLATE_UPDATE,
-    delete: import.meta.env.VITE_WEBHOOK_TEMPLATE_DELETE
+    delete: import.meta.env.VITE_WEBHOOK_TEMPLATE_DELETE,
+    execute: import.meta.env.VITE_WEBHOOK_TEMPLATE_SEND,
+    clone: import.meta.env.VITE_WEBHOOK_TEMPLATE_CLONE
   },
   validation: {
     validate: import.meta.env.VITE_WEBHOOK_VALIDATION,
@@ -11,10 +13,6 @@ export const webhooks = {
     list: import.meta.env.VITE_WEBHOOK_VALIDATION_LIST,
     save: import.meta.env.VITE_WEBHOOK_VALIDATION_SAVE,
     delete: import.meta.env.VITE_WEBHOOK_VALIDATION_DELETE
-  },
-  dispatch: {
-    send: import.meta.env.VITE_WEBHOOK_DISPATCH_SEND,
-    status: import.meta.env.VITE_WEBHOOK_DISPATCH_STATUS
   },
   connections: {
     list: import.meta.env.VITE_WEBHOOK_CONNECTIONS_LIST

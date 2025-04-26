@@ -171,7 +171,7 @@ const fetchValidationLists = async () => {
     }
     const data = await response.json()
     console.log('Dados recebidos da API:', data)
-    
+      
     // Extrai os leads do primeiro objeto do array
     const leads = data[0]?.leads || []
     
@@ -212,8 +212,15 @@ const form = ref({
   message: '',
   customFields: [],
   connection: '',
-  validationListId: null, // Mudado de string vazia para null
-  validationList: null
+  validationListId: null,
+  validationList: null,
+  output: {
+    Resposta1: '',
+    Resposta2: '',
+    Resposta3: '',
+    Resposta4: '',
+    Resposta5: ''
+  }
 })
 
 const handleSubmit = () => {
@@ -246,7 +253,13 @@ const handleSubmit = () => {
   const formData = { 
     ...form.value,
     validationList: selectedList,
-    leads: selectedList.leads
+    leads: selectedList.leads,
+    template_name: form.value.name,
+    template_connection: form.value.connection,
+    template_message: form.value.message,
+    template_list_id: form.value.validationListId,
+    template_list_name: selectedList.name,
+    output: form.value.output
   }
   
   console.log('Dados do formulário a serem enviados:', formData)

@@ -39,6 +39,12 @@
         <pre class="whitespace-pre-wrap">{{ previewData }}</pre>
       </div>
     </base-modal>
+    
+    <template-details-modal
+      v-if="selectedTemplate"
+      v-model:show="showDetailsModal"
+      :template="selectedTemplate"
+    />
   </div>
 </template>
 
@@ -49,12 +55,15 @@ import BaseButton from '../components/common/BaseButton.vue'
 import BaseModal from '../components/common/BaseModal.vue'
 import TemplateCard from '../components/templates/TemplateCard.vue'
 import TemplateForm from '../components/templates/TemplateForm.vue'
+import TemplateDetailsModal from '../components/templates/TemplateDetailsModal.vue'
 
 const templateStore = useTemplateStore()
 const showTemplateModal = ref(false)
 const showPreviewModal = ref(false)
+const showDetailsModal = ref(false) // Added missing ref
 const currentTemplate = ref(null)
 const previewData = ref(null)
+const selectedTemplate = ref(null) // Added missing ref
 
 const templates = ref([])
 
@@ -97,8 +106,11 @@ const cloneTemplate = (template) => {
 }
 
 const showPreview = (template) => {
-  previewData.value = JSON.stringify(template, null, 2)
-  showPreviewModal.value = true
+  console.log('Template selecionado:', template) // Adicionar log para debug
+  if (template) {
+    selectedTemplate.value = { ...template } // Criar uma cópia do template
+    showDetailsModal.value = true
+  }
 }
 
 const validateTemplate = async (template) => {
