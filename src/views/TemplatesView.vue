@@ -34,7 +34,7 @@
 
     <base-modal
       v-model="showTemplateModal"
-      :title="currentTemplate ? 'Editar Template' : 'Novo Template'"
+      :title="getModalTitle"
     >
       <template-form
         :template="currentTemplate"
@@ -61,7 +61,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, watch, computed } from 'vue'
 import { useTemplateStore } from '../stores/template'
 import { useToast } from 'vue-toastification'
 import BaseButton from '../components/common/BaseButton.vue'
@@ -105,8 +105,8 @@ const isLoading = ref(false)
 const handleTemplateSubmit = async (template) => {
   isLoading.value = true
   try {
-    if (currentTemplate.value) {
-      // Adiciona o ID do template ao objeto antes de enviar para atualização
+    if (currentTemplate.value && currentTemplate.value.id) {
+      // Se tem ID, é uma atualização
       const templateWithId = {
         ...template,
         id: currentTemplate.value.id
@@ -114,6 +114,7 @@ const handleTemplateSubmit = async (template) => {
       await templateStore.updateTemplate(templateWithId)
       toast.success('Template atualizado com sucesso')
     } else {
+      // Se não tem ID, é uma criação (incluindo clonagem)
       await templateStore.createTemplate(template)
       toast.success('Template criado com sucesso')
     }
@@ -133,9 +134,15 @@ const handleTemplateSubmit = async (template) => {
 }
 
 // Remova a função handleSubmit duplicada que estava no final do arquivo
+// Remova estas linhas que não estão sendo usadas
+// const showCloneModal = ref(false)
+// const templateToClone = ref(null)
+
+// Mantenha apenas esta implementação simples da clonagem
 const cloneTemplate = (template) => {
+  const clonedTemplate = JSON.parse(JSON.stringify(template)) // cópia profunda
   currentTemplate.value = {
-    ...template,
+    ...clonedTemplate,
     id: null,
     name: `${template.name} (Cópia)`
   }
@@ -173,12 +180,21 @@ const deleteTemplate = async (template) => {
 }
 
 // Adiciona um watcher para manter a lista local sincronizada
+// Simplifica o watch para evitar loops desnecessários
 watch(
   () => templateStore.templates,
   (newTemplates) => {
-    templates.value = newTemplates
+    if (newTemplates) {
+      templates.value = newTemplates
+    }
   }
 )
-</script>
 
-<style scoped></style>
+// Remove a função handleClone que não está sendo usada
+// Adicione esta computed property no script
+const getModalTitle = computed(() => {
+  if (!currentTemplate.value) return 'Novo Template'
+  if (currentTemplate.value.id) return 'Editar Template'
+  return 'Clonar Template'
+})
+</script>
