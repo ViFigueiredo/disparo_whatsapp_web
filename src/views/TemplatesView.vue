@@ -106,7 +106,12 @@ const handleTemplateSubmit = async (template) => {
   isLoading.value = true
   try {
     if (currentTemplate.value) {
-      await templateStore.updateTemplate(template)
+      // Adiciona o ID do template ao objeto antes de enviar para atualização
+      const templateWithId = {
+        ...template,
+        id: currentTemplate.value.id
+      }
+      await templateStore.updateTemplate(templateWithId)
       toast.success('Template atualizado com sucesso')
     } else {
       await templateStore.createTemplate(template)

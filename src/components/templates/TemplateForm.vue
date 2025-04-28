@@ -168,7 +168,7 @@ const fetchConnections = async () => {
     
     if (!response.ok) throw new Error('Erro ao buscar conexões')
     connections.value = await response.json()
-    console.log(connections.value);
+    // console.log(connections.value);
   } catch (error) {
     console.error('Erro ao carregar conexões:', error)
     toast.error('Erro ao carregar conexões')
@@ -181,7 +181,7 @@ const fetchValidationLists = async () => {
     if (!response.ok) throw new Error('Erro ao carregar listas de validação')
     const data = await response.json()
     
-    console.log('Dados recebidos:', data)
+    // console.log('Dados recebidos:', data)
     
     // Processa os dados recebidos
     if (Array.isArray(data) && data.length >= 2) {
@@ -199,7 +199,7 @@ const fetchValidationLists = async () => {
       })
     }
 
-    console.log('Listas processadas com leads:', validationLists.value)
+    // console.log('Listas processadas com leads:', validationLists.value)
   } catch (error) {
     console.error('Erro ao carregar listas:', error)
     toast.error('Erro ao carregar listas de validação')
@@ -214,7 +214,7 @@ onMounted(async () => {
     ])
     
     if (props.template) {
-      console.log('Template recebido:', props.template)
+      // console.log('Template recebido:', props.template)
       
       // Encontra a conexão correspondente
       const matchingConnection = connections.value.find(c => 
@@ -223,14 +223,14 @@ onMounted(async () => {
       
       // Procura a lista usando o ID do template
       const listId = parseInt(props.template.template_list_id)
-      console.log('ID da lista a encontrar:', listId)
+      // console.log('ID da lista a encontrar:', listId)
       
       // Encontra a lista nas listas disponíveis
       const matchingList = validationLists.value.find(list => 
         list.id === listId
       )
       
-      console.log('Lista encontrada:', matchingList)
+      // console.log('Lista encontrada:', matchingList)
 
       await nextTick(() => {
         form.value = {
