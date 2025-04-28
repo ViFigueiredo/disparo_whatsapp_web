@@ -29,10 +29,11 @@
         </button>
         <button
           @click="$emit('delete', template)"
-          class="text-red-600 hover:text-red-700"
+          class="text-red-600 hover:text-red-700 relative"
           title="Excluir"
+          :disabled="isDeleting"
         >
-          <i class="fas fa-trash"></i>
+          <i class="fas" :class="isDeleting ? 'fa-spinner fa-spin' : 'fa-trash'"></i>
         </button>
       </div>
     </div>
@@ -59,14 +60,45 @@
 </template>
 
 <script setup>
-defineProps({
+import { ref } from 'vue'
+
+const props = defineProps({
   template: {
     type: Object,
     required: true
   }
 })
 
-defineEmits(['edit', 'clone', 'preview', 'validate', 'delete'])
+const emit = defineEmits(['edit', 'clone', 'preview', 'validate', 'delete'])
+
+const isDeleting = ref(false)
+
+const handleDelete = async () => {
+  isDeleting.value = true
+  try {
+    await emit('delete', props.template)
+  } finally {
+    isDeleting.value = false
+  }
+}
 </script>
 
-<style scoped></style>
+<style scoped>
+.fa-spin {
+  animation: fa-spin 1s infinite linear;
+}
+
+@keyframes fa-spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+</style>
