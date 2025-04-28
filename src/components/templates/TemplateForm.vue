@@ -19,21 +19,16 @@
       <label class="block text-sm font-medium text-gray-700">
         Conexão
       </label>
-      <select
-        v-model="form.connectionId"
-        required
-        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-        @change="updateSelectedConnection"
-      >
-        <option value="">Selecione uma conexão</option>
-        <option 
-          v-for="connection in connections" 
-          :key="connection.ownerJid" 
-          :value="connection.ownerJid"
-        >
-          {{ connection.name }}
-        </option>
-      </select>
+      <Dropdown
+        v-model="form.connection"
+        :options="connections"
+        optionLabel="name"
+        :optionValue="(option) => option"
+        placeholder="Selecione uma conexão"
+        class="w-full"
+        :class="{'p-invalid': submitted && !form.connection}"
+        dataKey="name"
+      />
     </div>
 
     <!-- Mensagem -->
@@ -97,19 +92,16 @@
       <label class="block text-sm font-medium text-gray-700">
         Lista de Leads Validada
       </label>
-      <select
+      <Dropdown
         v-model="form.validationListId"
-        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
-      >
-        <option value="">Selecione uma lista</option>
-        <option 
-          v-for="list in validationLists" 
-          :key="list.id" 
-          :value="list.id"
-        >
-          {{ list.name }}
-        </option>
-      </select>
+        :options="validationLists"
+        optionLabel="name"
+        optionValue="id"
+        placeholder="Selecione uma lista"
+        class="w-full"
+        :class="{'p-invalid': submitted && !form.validationListId}"
+        dataKey="id"
+      />
     </div>
 
     <!-- Botões -->
@@ -132,9 +124,10 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue'
+import { ref, watch, onMounted, nextTick } from 'vue'
 import { webhooks } from '@/config/webhooks'
 import { useToast } from 'vue-toastification'
+import Dropdown from 'primevue/dropdown'
 
 const toast = useToast()
 
@@ -156,8 +149,7 @@ const form = ref({
   name: '',
   message: '',
   customFields: [],
-  connectionId: '',
-  connection: null,
+  connection: null, // Removemos connectionId pois não é necessário
   validationListId: null,
   output: {
     Resposta1: '',
@@ -168,23 +160,8 @@ const form = ref({
   }
 })
 
-// Métodos
-const updateSelectedConnection = () => {
-  selectedConnection.value = connections.value.find(
-    c => c.ownerJid === form.value.connectionId
-  )
-  form.value.connection = selectedConnection.value
-}
+// Removemos updateSelectedConnection pois não é mais necessário
 
-const addCustomField = () => {
-  form.value.customFields.push({ name: '', value: '' })
-}
-
-const removeCustomField = (index) => {
-  form.value.customFields.splice(index, 1)
-}
-
-// Fetch data
 const fetchConnections = async () => {
   try {
     const response = await fetch(webhooks.connections.list)
@@ -204,64 +181,82 @@ const fetchValidationLists = async () => {
     if (!response.ok) throw new Error('Erro ao carregar listas de validação')
     const data = await response.json()
     
-    const leads = data[0]?.leads || []
-    const lists = data[1]?.lists || []
+    console.log('Dados recebidos:', data)
     
-    validationLists.value = lists.map(list => ({
-      id: list.id,
-      name: list.name,
-      leads: leads.filter(lead => lead.list_id === list.id)
-    }))
+    // Processa os dados recebidos
+    if (Array.isArray(data) && data.length >= 2) {
+      const leads = data[0]?.leads || []
+      const lists = data[1]?.lists || []
+      
+      // Mapeia as listas e associa os leads correspondentes
+      validationLists.value = lists.map(list => {
+        const listLeads = leads.filter(lead => lead.list_id === parseInt(list.id))
+        return {
+          id: parseInt(list.id),
+          name: list.name,
+          leads: listLeads
+        }
+      })
+    }
+
+    console.log('Listas processadas com leads:', validationLists.value)
   } catch (error) {
     console.error('Erro ao carregar listas:', error)
     toast.error('Erro ao carregar listas de validação')
   }
 }
 
-// Inicialização
-const initializeForm = () => {
-  if (!props.template) return
-
-  // Preenche os campos básicos
-  form.value = {
-    ...form.value,
-    name: props.template.template_name || '',
-    message: props.template.template_message || '',
-    customFields: props.template.customFields || [],
-    output: props.template.output || form.value.output
-  }
-
-  // Define a conexão selecionada
-  if (props.template.template_connection) {
-    form.value.connectionId = props.template.template_connection.ownerJid
-    form.value.connection = props.template.template_connection
-  }
-
-  // Define a lista selecionada
-  if (props.template.template_list_id) {
-    form.value.validationListId = props.template.template_list_id
-  }
-}
-
-// Watch para quando os dados forem carregados
-watch([connections, validationLists], () => {
-  initializeForm()
-}, { deep: true })
-
-// Lifecycle
 onMounted(async () => {
   try {
-    await Promise.all([fetchConnections(), fetchValidationLists()])
-    initializeForm()
+    await Promise.all([
+      fetchConnections(),
+      fetchValidationLists()
+    ])
+    
+    if (props.template) {
+      console.log('Template recebido:', props.template)
+      
+      // Encontra a conexão correspondente
+      const matchingConnection = connections.value.find(c => 
+        c.name === props.template.template_connection
+      )
+      
+      // Procura a lista usando o ID do template
+      const listId = parseInt(props.template.template_list_id)
+      console.log('ID da lista a encontrar:', listId)
+      
+      // Encontra a lista nas listas disponíveis
+      const matchingList = validationLists.value.find(list => 
+        list.id === listId
+      )
+      
+      console.log('Lista encontrada:', matchingList)
+
+      await nextTick(() => {
+        form.value = {
+          name: props.template.template_name,
+          message: props.template.template_message,
+          connection: matchingConnection || null,
+          validationListId: listId,
+          customFields: props.template.customFields || [],
+          output: props.template.output || {
+            Resposta1: '',
+            Resposta2: '',
+            Resposta3: '',
+            Resposta4: '',
+            Resposta5: ''
+          }
+        }
+      })
+    }
   } catch (error) {
-    console.error('Erro ao inicializar:', error)
-    toast.error('Erro ao carregar dados iniciais')
+    console.error('Erro ao inicializar o formulário:', error)
+    toast.error('Erro ao carregar os dados do template')
   }
 })
 
-// Submit
 const handleSubmit = () => {
-  if (!form.value.connectionId) {
+  if (!form.value.connection) {
     toast.error('Selecione uma conexão')
     return
   }
@@ -285,6 +280,7 @@ const handleSubmit = () => {
     validationList: selectedList,
     leads: selectedList.leads,
     template_name: form.value.name,
+    template_connection: form.value.connection,
     template_message: form.value.message,
     template_list_id: form.value.validationListId,
     template_list_name: selectedList.name
@@ -292,4 +288,33 @@ const handleSubmit = () => {
 
   emit('submit', formData)
 }
+const addCustomField = () => {
+  form.value.customFields.push({ name: '', value: '' })
+}
+
+const removeCustomField = (index) => {
+  form.value.customFields.splice(index, 1)
+}
+
+const submitted = ref(false)
 </script>
+
+<style>
+.p-dropdown {
+  width: 100%;
+  border-radius: 0.375rem;
+  background-color: white;
+}
+
+.p-dropdown.p-invalid {
+  border-color: #dc2626;
+}
+
+.p-dropdown-panel .p-dropdown-items .p-dropdown-item {
+  padding: 0.75rem 1rem;
+}
+
+.p-dropdown-panel .p-dropdown-items .p-dropdown-item:hover {
+  background-color: #f3f4f6;
+}
+</style>

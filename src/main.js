@@ -1,4 +1,6 @@
 import { createApp } from 'vue'
+import PrimeVue from 'primevue/config';
+import Aura from '@primeuix/themes/aura';
 import { createPinia } from 'pinia'
 import Toast from 'vue-toastification'
 import 'vue-toastification/dist/index.css'
@@ -25,6 +27,11 @@ const toastOptions = {
   rtl: false
 }
 
+app.use(PrimeVue, {
+  theme: {
+      preset: Aura
+  }
+});
 app.use(pinia)
 app.use(router)
 app.use(Toast, toastOptions)
