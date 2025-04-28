@@ -1,5 +1,16 @@
 <template>
-  <div class="space-y-6">
+  <div class="space-y-6 relative">
+    <!-- Overlay de Loading -->
+    <div 
+      v-if="isLoading" 
+      class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999]"
+    >
+      <div class="bg-white p-8 rounded-lg shadow-lg flex flex-col items-center">
+        <i class="fas fa-spinner fa-spin text-4xl text-blue-600 mb-4"></i>
+        <p class="text-gray-700">{{ currentTemplate ? 'Atualizando' : 'Criando' }} template...</p>
+      </div>
+    </div>
+
     <div class="flex justify-between items-center">
       <h2 class="text-2xl font-bold text-gray-900">Templates de Mensagem</h2>
       <base-button @click="openCreateModal">
@@ -89,15 +100,34 @@ const closeTemplateModal = () => {
   currentTemplate.value = null
 }
 
+const isLoading = ref(false)
+
 const handleTemplateSubmit = async (template) => {
-  if (currentTemplate.value) {
-    await templateStore.updateTemplate(template)
-  } else {
-    await templateStore.createTemplate(template)
+  isLoading.value = true
+  try {
+    if (currentTemplate.value) {
+      await templateStore.updateTemplate(template)
+      toast.success('Template atualizado com sucesso')
+    } else {
+      await templateStore.createTemplate(template)
+      toast.success('Template criado com sucesso')
+    }
+    
+    // Atualiza a lista de templates
+    await templateStore.fetchTemplates()
+    templates.value = templateStore.templates
+    
+    // Fecha o modal
+    closeTemplateModal()
+  } catch (error) {
+    console.error('Erro ao salvar template:', error)
+    toast.error('Erro ao salvar template')
+  } finally {
+    isLoading.value = false
   }
-  closeTemplateModal()
 }
 
+// Remova a função handleSubmit duplicada que estava no final do arquivo
 const cloneTemplate = (template) => {
   currentTemplate.value = {
     ...template,
