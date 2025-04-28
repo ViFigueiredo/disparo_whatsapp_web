@@ -1,11 +1,18 @@
 <template>
-  <div class="bg-white rounded-lg shadow p-6 space-y-4">
+  <div class="bg-white rounded-lg shadow p-4 space-y-4">
     <div class="flex justify-between items-start">
       <div>
         <h3 class="text-lg font-medium text-gray-900">{{ template.name }}</h3>
         <p class="text-sm text-gray-500">{{ template.connection }}</p>
       </div>
-      <div class="flex space-x-2">
+      <div class="flex space-x-4">
+        <button
+          @click="$emit('execute', template)"
+          class="text-yellow-600 hover:text-yellow-800"
+          title="Executar"
+          >
+          <i class="fas fa-play"></i>
+        </button>
         <button
           @click="$emit('edit', template)"
           class="text-blue-600 hover:text-blue-800"
@@ -21,11 +28,11 @@
           <i class="fas fa-clone"></i>
         </button>
         <button
-          @click="$emit('execute', template)"
-          class="text-yellow-600 hover:text-yellow-800"
-          title="Executar"
+          @click="$emit('delete', template)"
+          class="text-red-600 hover:text-red-700"
+          title="Excluir"
         >
-          <i class="fas fa-play"></i>
+          <i class="fas fa-trash"></i>
         </button>
       </div>
     </div>
@@ -59,7 +66,7 @@ defineProps({
   }
 })
 
-defineEmits(['edit', 'clone', 'execute', 'preview'])
+defineEmits(['edit', 'clone', 'preview', 'validate', 'delete'])
 </script>
 
 <style scoped></style>

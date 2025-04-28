@@ -79,6 +79,32 @@ export const useTemplateStore = defineStore('template', {
       } finally {
         this.isLoading = false
       }
+    },
+
+    async deleteTemplate(templateId) {
+      try {
+        this.isLoading = true
+        const response = await fetch(webhooks.templates.delete, {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ id: templateId })
+        })
+
+        if (!response.ok) {
+          throw new Error('Erro ao excluir template')
+        }
+
+        // Remove o template da lista local
+        this.templates = this.templates.filter(t => t.id !== templateId)
+        return true
+      } catch (error) {
+        this.error = error.message
+        throw error
+      } finally {
+        this.isLoading = false
+      }
     }
   }
 })

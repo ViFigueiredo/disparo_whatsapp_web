@@ -17,6 +17,7 @@
         @clone="cloneTemplate"
         @preview="showPreview"
         @validate="validateTemplate"
+        @delete="deleteTemplate"
       />
     </div>
 
@@ -51,6 +52,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useTemplateStore } from '../stores/template'
+import { useToast } from 'vue-toastification'
 import BaseButton from '../components/common/BaseButton.vue'
 import BaseModal from '../components/common/BaseModal.vue'
 import TemplateCard from '../components/templates/TemplateCard.vue'
@@ -115,6 +117,22 @@ const showPreview = (template) => {
 
 const validateTemplate = async (template) => {
   await templateStore.validateTemplate(template)
+}
+
+const toast = useToast()
+
+const deleteTemplate = async (template) => {
+  if (!confirm('Tem certeza que deseja excluir este template?')) {
+    return
+  }
+
+  try {
+    await templateStore.deleteTemplate(template.id)
+    toast.success('Template excluído com sucesso')
+  } catch (error) {
+    console.error('Erro ao excluir template:', error)
+    toast.error('Erro ao excluir template')
+  }
 }
 </script>
 
