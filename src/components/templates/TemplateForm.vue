@@ -124,7 +124,7 @@
 </template>
 
 <script setup>
-import { ref, watch, onMounted, nextTick } from 'vue'
+import { ref, onMounted, nextTick } from 'vue'
 import { webhooks } from '@/config/webhooks'
 import { useToast } from 'vue-toastification'
 import Dropdown from 'primevue/dropdown'
@@ -143,7 +143,6 @@ const emit = defineEmits(['submit', 'cancel'])
 // Dados reativos
 const connections = ref([])
 const validationLists = ref([])
-const selectedConnection = ref(null)
 
 const form = ref({
   name: '',

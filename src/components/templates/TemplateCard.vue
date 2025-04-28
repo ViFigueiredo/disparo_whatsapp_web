@@ -44,7 +44,7 @@
     <div class="flex justify-between items-center pt-4 border-t border-gray-200">
       <div class="flex flex-col text-sm">
         <span class="text-gray-500">Lista: {{ template.template_list_name }}</span>
-        <span class="text-gray-500">Leads: {{ template.leads_count || 0 }}</span>
+        <span class="text-gray-500">Leads: {{ totalLeads }}</span>
       </div>
       <div class="flex justify-end space-x-2">
         <button
@@ -60,7 +60,11 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted, computed } from 'vue'
+import { useToast } from 'vue-toastification'
+import { webhooks } from '@/config/webhooks'
+
+const toast = useToast()
 
 const props = defineProps({
   template: {
@@ -69,18 +73,46 @@ const props = defineProps({
   }
 })
 
+const validationLists = ref([])
 const emit = defineEmits(['edit', 'clone', 'preview', 'validate', 'delete'])
-
 const isDeleting = ref(false)
 
-const handleDelete = async () => {
-  isDeleting.value = true
+// Computed property para calcular o total de leads do template atual
+const totalLeads = computed(() => {
+  const templateList = validationLists.value.find(list => 
+    list.id === parseInt(props.template.template_list_id)
+  )
+  return templateList?.leads?.length || 0
+})
+
+const fetchValidationLists = async () => {
   try {
-    await emit('delete', props.template)
-  } finally {
-    isDeleting.value = false
+    const response = await fetch(webhooks.validation.list)
+    if (!response.ok) throw new Error('Erro ao carregar listas de validação')
+    const data = await response.json()
+    
+    if (Array.isArray(data) && data.length >= 2) {
+      const leads = data[0]?.leads || []
+      const lists = data[1]?.lists || []
+      
+      validationLists.value = lists.map(list => {
+        const listLeads = leads.filter(lead => lead.list_id === parseInt(list.id))
+        return {
+          id: parseInt(list.id),
+          name: list.name,
+          leads: listLeads
+        }
+      })
+    }
+  } catch (error) {
+    console.error('Erro ao carregar listas:', error)
+    toast.error('Erro ao carregar listas de validação')
   }
 }
+
+onMounted(() => {
+  fetchValidationLists()
+})
 </script>
 
 <style scoped>

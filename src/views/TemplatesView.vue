@@ -70,6 +70,7 @@ import TemplateCard from '../components/templates/TemplateCard.vue'
 import TemplateForm from '../components/templates/TemplateForm.vue'
 import TemplateDetailsModal from '../components/templates/TemplateDetailsModal.vue'
 
+const toast = useToast()
 const templateStore = useTemplateStore()
 const showTemplateModal = ref(false)
 const showPreviewModal = ref(false)
@@ -161,7 +162,7 @@ const validateTemplate = async (template) => {
   await templateStore.validateTemplate(template)
 }
 
-const toast = useToast()
+
 
 const deleteTemplate = async (template) => {
   if (!confirm('Tem certeza que deseja excluir este template?')) {
