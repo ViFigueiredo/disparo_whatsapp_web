@@ -11,8 +11,8 @@ const routes = [
         component: () => import('../views/TemplatesView.vue')
       },
       {
-        path: 'validation',
-        name: 'validation',
+        path: 'leads',
+        name: 'leads',
         component: () => import('../views/ValidationView.vue')
       },
     ]
