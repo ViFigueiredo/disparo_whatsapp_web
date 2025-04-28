@@ -117,14 +117,14 @@
         type="submit"
         class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
       >
-        {{ template ? 'Atualizar' : 'Criar' }}
+        {{ isCloning ? 'Clonar' : (template ? 'Atualizar' : 'Criar') }}
       </button>
     </div>
   </form>
 </template>
 
 <script setup>
-import { ref, onMounted, nextTick } from 'vue'
+import { ref, onMounted, nextTick, computed } from 'vue'
 import { webhooks } from '@/config/webhooks'
 import { useToast } from 'vue-toastification'
 import Dropdown from 'primevue/dropdown'
@@ -296,6 +296,10 @@ const removeCustomField = (index) => {
 }
 
 const submitted = ref(false)
+
+const isCloning = computed(() => {
+  return props.template && !props.template.id
+})
 </script>
 
 <style>
