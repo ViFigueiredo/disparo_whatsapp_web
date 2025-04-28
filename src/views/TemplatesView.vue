@@ -50,7 +50,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useTemplateStore } from '../stores/template'
 import { useToast } from 'vue-toastification'
 import BaseButton from '../components/common/BaseButton.vue'
@@ -128,12 +128,22 @@ const deleteTemplate = async (template) => {
 
   try {
     await templateStore.deleteTemplate(template.id)
+    // Atualiza a referência local dos templates
+    templates.value = templateStore.templates
     toast.success('Template excluído com sucesso')
   } catch (error) {
     console.error('Erro ao excluir template:', error)
     toast.error('Erro ao excluir template')
   }
 }
+
+// Adiciona um watcher para manter a lista local sincronizada
+watch(
+  () => templateStore.templates,
+  (newTemplates) => {
+    templates.value = newTemplates
+  }
+)
 </script>
 
 <style scoped></style>

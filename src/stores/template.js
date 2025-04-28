@@ -96,11 +96,15 @@ export const useTemplateStore = defineStore('template', {
           throw new Error('Erro ao excluir template')
         }
 
-        // Remove o template da lista local
-        this.templates = this.templates.filter(t => t.id !== templateId)
+        // Atualiza a lista local removendo o template excluído
+        this.templates = this.templates.filter(template => template.id !== templateId)
+        
+        // Força uma nova busca dos templates para garantir sincronização
+        await this.fetchTemplates()
+        
         return true
       } catch (error) {
-        this.error = error.message
+        console.error('Erro ao excluir template:', error)
         throw error
       } finally {
         this.isLoading = false
