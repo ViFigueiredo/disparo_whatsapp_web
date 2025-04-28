@@ -1,9 +1,8 @@
 <template>
-  <div class="bg-white rounded-lg shadow p-4 space-y-4">
+  <div class="bg-white rounded-lg shadow-md p-6 space-y-4">
     <div class="flex justify-between items-start">
       <div>
-        <h3 class="text-lg font-medium text-gray-900">{{ template.name }}</h3>
-        <p class="text-sm text-gray-500">{{ template.connection }}</p>
+        <h3 class="text-lg font-semibold text-gray-900">{{ template.template_name }}</h3>
       </div>
       <div class="flex space-x-4">
         <button
@@ -43,16 +42,17 @@
     </div>
 
     <div class="flex justify-between items-center pt-4 border-t border-gray-200">
-      <span class="text-sm text-gray-500">
-        Lista: {{ template.template_list_name }}
-      </span>
+      <div class="flex flex-col text-sm">
+        <span class="text-gray-500">Lista: {{ template.template_list_name }}</span>
+        <span class="text-gray-500">Leads: {{ template.leads_count || 0 }}</span>
+      </div>
       <div class="flex justify-end space-x-2">
         <button
           @click="$emit('preview', template)"
           class="text-blue-600 hover:text-blue-800"
         >
           <i class="fas fa-eye"></i>
-          Ver Detalhes
+          Detalhes
         </button>
       </div>
     </div>
