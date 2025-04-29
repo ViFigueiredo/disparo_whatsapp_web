@@ -6,11 +6,12 @@
       </div>
       <div class="flex space-x-4">
         <button
-          @click="$emit('execute', template)"
+          @click="handleExecute"
           class="text-yellow-600 hover:text-yellow-800"
           title="Executar"
+          :disabled="isExecuting"
           >
-          <i class="fas fa-play"></i>
+          <i class="fas" :class="isExecuting ? 'fa-spinner fa-spin' : 'fa-play'"></i>
         </button>
         <button
           @click="$emit('edit', template)"
@@ -74,8 +75,9 @@ const props = defineProps({
 })
 
 const validationLists = ref([])
-const emit = defineEmits(['edit', 'clone', 'preview', 'validate', 'delete'])
+const emit = defineEmits(['edit', 'clone', 'preview', 'validate', 'delete', 'execute'])
 const isDeleting = ref(false)
+const isExecuting = ref(false)
 
 // Computed property para calcular o total de leads do template atual
 const totalLeads = computed(() => {
@@ -84,6 +86,34 @@ const totalLeads = computed(() => {
   )
   return templateList?.leads?.length || 0
 })
+
+const handleExecute = async () => {
+  if (isExecuting.value) return
+  
+  try {
+    isExecuting.value = true
+    
+    // Verificar se há leads na lista
+    if (totalLeads.value === 0) {
+      toast.warning('Não há leads na lista para envio')
+      return
+    }
+    
+    // Emitir evento de execução para o componente pai
+    emit('execute', props.template)
+    
+    // Não mostramos a mensagem de sucesso aqui, pois o componente pai
+    // irá mostrar uma mensagem mais detalhada após a execução real
+  } catch (error) {
+    console.error('Erro ao executar template:', error)
+    toast.error('Erro ao iniciar disparo do template')
+  } finally {
+    // Mantemos o spinner por pelo menos 1 segundo para feedback visual
+    setTimeout(() => {
+      isExecuting.value = false
+    }, 1000)
+  }
+}
 
 const fetchValidationLists = async () => {
   try {

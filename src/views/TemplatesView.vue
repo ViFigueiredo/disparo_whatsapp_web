@@ -29,6 +29,7 @@
         @preview="showPreview"
         @validate="validateTemplate"
         @delete="deleteTemplate"
+        @execute="executeTemplate"
       />
     </div>
 
@@ -134,11 +135,6 @@ const handleTemplateSubmit = async (template) => {
   }
 }
 
-// Remova a função handleSubmit duplicada que estava no final do arquivo
-// Remova estas linhas que não estão sendo usadas
-// const showCloneModal = ref(false)
-// const templateToClone = ref(null)
-
 // Mantenha apenas esta implementação simples da clonagem
 const cloneTemplate = (template) => {
   const clonedTemplate = JSON.parse(JSON.stringify(template)) // cópia profunda
@@ -198,4 +194,17 @@ const getModalTitle = computed(() => {
   if (currentTemplate.value.id) return 'Editar Template'
   return 'Clonar Template'
 })
+
+const executeTemplate = async (template) => {
+  try {
+    isLoading.value = true
+    const result = await templateStore.executeTemplate(template)
+    toast.success(`Disparo iniciado com sucesso! ${result.message || ''}`)
+  } catch (error) {
+    console.error('Erro ao executar template:', error)
+    toast.error(`Erro ao executar disparo: ${error.message}`)
+  } finally {
+    isLoading.value = false
+  }
+}
 </script>
