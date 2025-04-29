@@ -81,37 +81,37 @@ export const useTemplateStore = defineStore('template', {
       }
     },
 
+    // Função para executar o template
     async executeTemplate(template) {
       try {
         this.isLoading = true
         
-        // Get the list of leads for this template
-        const listId = parseInt(template.template_list_id)
-        const leadsResponse = await fetch(webhooks.validation.list)
-        
-        if (!leadsResponse.ok) {
-          throw new Error('Erro ao carregar leads para envio')
-        }
-        
-        const data = await leadsResponse.json()
-        const leads = data[0]?.leads || []
-        const listLeads = leads.filter(lead => lead.list_id === listId)
-        
-        if (listLeads.length === 0) {
-          throw new Error('Não há leads na lista para envio')
-        }
-        
-        // Prepare the payload for the webhook
+        // Preparar os dados para envio com todos os detalhes
         const payload = {
+          // Dados básicos do template
           template_id: template.id,
           template_name: template.template_name,
-          message: template.template_message,
-          connection: template.template_connection,
-          leads: listLeads,
-          customFields: template.customFields || []
+          template_message: template.message || template.template_message,
+          template_connection: template.template_connection,
+          template_list_id: template.template_list_id,
+          template_list_name: template.template_list_name,
+          
+          // Dados da lista de validação
+          validationList: template.validationList,
+          totalLeads: template.totalLeads,
+          
+          // Respostas da IA
+          aiResponses: template.aiResponses || [],
+          
+          // Dados adicionais que possam existir
+          customFields: template.customFields || [],
+          
+          // Metadados
+          created_at: template.created_at,
+          updated_at: template.updated_at
         }
         
-        // Send the request to the execute webhook
+        // Enviar para a API
         const response = await fetch(webhooks.templates.execute, {
           method: 'POST',
           headers: {
@@ -121,7 +121,8 @@ export const useTemplateStore = defineStore('template', {
         })
         
         if (!response.ok) {
-          throw new Error('Erro ao executar disparo do template')
+          const errorData = await response.json().catch(() => ({}))
+          throw new Error(errorData.message || 'Erro ao executar o template')
         }
         
         return await response.json()

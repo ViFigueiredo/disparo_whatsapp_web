@@ -99,16 +99,31 @@ const handleExecute = async () => {
       return
     }
     
-    // Emitir evento de execução para o componente pai
-    emit('execute', props.template)
+    // Buscar os dados completos da lista de validação
+    const listId = parseInt(props.template.template_list_id)
+    const listData = validationLists.value.find(list => list.id === listId)
     
-    // Não mostramos a mensagem de sucesso aqui, pois o componente pai
-    // irá mostrar uma mensagem mais detalhada após a execução real
+    // Emitir evento de execução para o componente pai com todos os dados
+    const templateWithAllData = {
+      ...props.template,
+      validationList: listData || null,
+      totalLeads: totalLeads.value,
+      // Incluir as respostas da IA se existirem
+      aiResponses: props.template.output ? [
+        props.template.output.Resposta1,
+        props.template.output.Resposta2,
+        props.template.output.Resposta3,
+        props.template.output.Resposta4,
+        props.template.output.Resposta5
+      ].filter(resp => resp && resp.trim() !== '') : []
+    }
+    
+    emit('execute', templateWithAllData)
+    
   } catch (error) {
     console.error('Erro ao executar template:', error)
     toast.error('Erro ao iniciar disparo do template')
   } finally {
-    // Mantemos o spinner por pelo menos 1 segundo para feedback visual
     setTimeout(() => {
       isExecuting.value = false
     }, 1000)

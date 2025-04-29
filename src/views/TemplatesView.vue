@@ -198,8 +198,22 @@ const getModalTitle = computed(() => {
 const executeTemplate = async (template) => {
   try {
     isLoading.value = true
+    
+    // Verificar se o template tem todos os dados necessários
+    if (!template.template_list_id) {
+      toast.warning('Este template não possui uma lista de validação associada')
+      return
+    }
+    
+    // Executar o template com todos os dados
     const result = await templateStore.executeTemplate(template)
+    
+    // Mostrar mensagem de sucesso com detalhes
     toast.success(`Disparo iniciado com sucesso! ${result.message || ''}`)
+    
+    // Opcional: Mostrar detalhes adicionais do disparo
+    console.log('Detalhes do disparo:', result)
+    
   } catch (error) {
     console.error('Erro ao executar template:', error)
     toast.error(`Erro ao executar disparo: ${error.message}`)
