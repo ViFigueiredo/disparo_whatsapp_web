@@ -143,70 +143,174 @@ const handleFileUpload = (event) => {
       const text = e.target.result
       // Remove possíveis caracteres BOM e espaços extras
       const cleanText = text.replace(/^\uFEFF/, '').trim()
-      const lines = cleanText.split(/\r?\n/)
       
-      // Normalização mais flexível do cabeçalho
-      const headerLine = lines[0].toLowerCase().trim()
-      const headers = headerLine.split(',').map(h => h.trim())
+      // Tenta detectar o formato do arquivo
+      const lines = cleanText.split(/\r?\n/).filter(line => line.trim())
       
-      const nomeIndex = headers.findIndex(h => h.includes('nome'))
-      const numeroIndex = headers.findIndex(h => h.includes('numero'))
+      // Verifica se o arquivo parece estar em formato de tabela
+      const firstLine = lines[0].trim()
+      const isTabular = !firstLine.includes(',') && (firstLine.includes('\t') || firstLine.split(/\s+/).length > 1)
       
-      if (nomeIndex === -1 || numeroIndex === -1) {
-        toast.error('O arquivo CSV deve conter as colunas "nome" e "numero"')
-        event.target.value = ''
-        return
-      }
-
-      form.value.leads = lines.slice(1)
-        .filter(line => line.trim())
-        .map(line => {
-          const values = line.split(',').map(v => v.trim().replace(/^["']|["']$/g, ''))
-          
-          // Processa o número, lidando com notação científica e números normais
-          let numero = values[numeroIndex] || ''
-          if (numero) {
-            try {
-              // Remove caracteres não numéricos mantendo E, e, +, - e ponto
-              numero = numero.replace(/[^\d.Ee+-]/g, '')
-              
-              // Verifica se é notação científica
-              if (numero.includes('E') || numero.includes('e')) {
-                const numberValue = Number(numero)
-                if (!isNaN(numberValue)) {
-                  numero = Math.round(numberValue).toString()
-                }
-              } else {
-                // Remove todos os caracteres não numéricos para números normais
-                numero = numero.replace(/[^\d]/g, '')
-              }
-            } catch (error) {
-              console.error('Erro ao processar número:', error)
-              numero = numero.replace(/[^\d]/g, '')
-            }
-          }
-
-          return {
-            nome: values[nomeIndex] || '',
-            numero: numero
-          }
-        })
-        .filter(lead => {
-          const isValid = lead.nome && lead.numero && lead.numero.length >= 10
-          if (!isValid) {
-            console.warn('Lead inválido encontrado:', lead)
-          }
-          return isValid
-        })
-
-      if (form.value.leads.length > 0) {
-        toast.success(`${form.value.leads.length} leads carregados com sucesso!`)
+      if (isTabular) {
+        // Processa como formato de tabela
+        processTabularFormat(lines, event)
       } else {
-        toast.warning('Nenhum lead válido encontrado no arquivo')
-        event.target.value = ''
+        // Processa como CSV tradicional
+        processCSVFormat(lines, event)
       }
     }
     reader.readAsText(file)
+  }
+}
+
+// Função para processar formato de tabela (colunas separadas por espaços ou tabs)
+const processTabularFormat = (lines, event) => {
+  try {
+    // Identifica os cabeçalhos
+    const headerLine = lines[0].toLowerCase().trim()
+    const headers = headerLine.includes('\t') 
+      ? headerLine.split('\t').map(h => h.trim()) 
+      : headerLine.split(/\s+/).map(h => h.trim())
+    
+    const nomeIndex = headers.findIndex(h => h.includes('nome'))
+    const numeroIndex = headers.findIndex(h => h.includes('numero'))
+    
+    if (nomeIndex === -1 || numeroIndex === -1) {
+      toast.error('O arquivo deve conter as colunas "nome" e "numero"')
+      event.target.value = ''
+      return
+    }
+    
+    // Processa as linhas de dados
+    form.value.leads = []
+    for (let i = 1; i < lines.length; i++) {
+      const line = lines[i].trim()
+      if (!line) continue
+      
+      // Divide a linha por tabs ou múltiplos espaços
+      const values = line.includes('\t') 
+        ? line.split('\t').map(v => v.trim()) 
+        : line.split(/\s+/).map(v => v.trim())
+      
+      if (values.length <= Math.max(nomeIndex, numeroIndex)) continue
+      
+      // Extrai nome e número
+      let nome = values[nomeIndex] || ''
+      let numero = values[numeroIndex] || ''
+      
+      // Se o nome tiver múltiplas palavras, pode ter sido dividido incorretamente
+      if (nomeIndex + 1 < numeroIndex) {
+        // Reconstrói o nome completo juntando as palavras entre nomeIndex e numeroIndex
+        nome = values.slice(nomeIndex, numeroIndex).join(' ').trim()
+      }
+      
+      // Processa o número
+      if (numero) {
+        numero = processNumero(numero)
+      }
+      
+      // Adiciona o lead se for válido
+      if (nome && numero && numero.length >= 10) {
+        form.value.leads.push({ nome, numero })
+      } else {
+        console.warn('Lead inválido encontrado:', { nome, numero })
+      }
+    }
+    
+    if (form.value.leads.length > 0) {
+      toast.success(`${form.value.leads.length} leads carregados com sucesso!`)
+    } else {
+      toast.warning('Nenhum lead válido encontrado no arquivo')
+      event.target.value = ''
+    }
+  } catch (error) {
+    console.error('Erro ao processar arquivo tabular:', error)
+    toast.error('Erro ao processar o arquivo')
+    event.target.value = ''
+  }
+}
+
+// Função para processar formato CSV (colunas separadas por vírgulas)
+const processCSVFormat = (lines, event) => {
+  try {
+    // Normalização mais flexível do cabeçalho
+    const headerLine = lines[0].toLowerCase().trim()
+    const headers = headerLine.split(',').map(h => h.trim())
+    
+    const nomeIndex = headers.findIndex(h => h.includes('nome'))
+    const numeroIndex = headers.findIndex(h => h.includes('numero'))
+    
+    if (nomeIndex === -1 || numeroIndex === -1) {
+      toast.error('O arquivo CSV deve conter as colunas "nome" e "numero"')
+      event.target.value = ''
+      return
+    }
+
+    form.value.leads = lines.slice(1)
+      .filter(line => line.trim())
+      .map(line => {
+        const values = line.split(',').map(v => v.trim().replace(/^["']|["']$/g, ''))
+        
+        // Processa o número
+        let numero = values[numeroIndex] || ''
+        if (numero) {
+          numero = processNumero(numero)
+        }
+
+        return {
+          nome: values[nomeIndex] || '',
+          numero: numero
+        }
+      })
+      .filter(lead => {
+        const isValid = lead.nome && lead.numero && lead.numero.length >= 10
+        if (!isValid) {
+          console.warn('Lead inválido encontrado:', lead)
+        }
+        return isValid
+      })
+
+    if (form.value.leads.length > 0) {
+      toast.success(`${form.value.leads.length} leads carregados com sucesso!`)
+    } else {
+      toast.warning('Nenhum lead válido encontrado no arquivo')
+      event.target.value = ''
+    }
+  } catch (error) {
+    console.error('Erro ao processar arquivo CSV:', error)
+    toast.error('Erro ao processar o arquivo')
+    event.target.value = ''
+  }
+}
+
+// Função para processar o número de telefone
+const processNumero = (numero) => {
+  if (!numero) return ''
+  
+  try {
+    // Verifica se é notação científica (formato 5,58E+11 ou 5.58E+11)
+    if (numero.includes('E') || numero.includes('e')) {
+      // Substitui vírgula por ponto para garantir que o Number() funcione corretamente
+      const normalizedNumber = numero.replace(',', '.')
+      const numberValue = Number(normalizedNumber)
+      if (!isNaN(numberValue)) {
+        // Converte para número inteiro sem notação científica
+        return Math.round(numberValue).toString()
+      }
+    } else if (numero.includes(',')) {
+      // Trata números com vírgula como separador decimal
+      numero = numero.replace(',', '.')
+      const numberValue = Number(numero)
+      if (!isNaN(numberValue)) {
+        return Math.round(numberValue).toString()
+      }
+    }
+    
+    // Remove todos os caracteres não numéricos para números normais
+    return numero.replace(/[^\d]/g, '')
+  } catch (error) {
+    console.error('Erro ao processar número:', error)
+    return numero.replace(/[^\d]/g, '')
   }
 }
 
