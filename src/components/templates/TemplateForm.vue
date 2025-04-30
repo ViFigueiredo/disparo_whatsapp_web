@@ -31,8 +31,8 @@
       />
     </div>
 
-    <!-- Mensagem -->
-    <div>
+    <!-- Mensagem - Apenas para WHATSAPP-BAILEYS -->
+    <div v-if="!isBusinessIntegration">
       <label class="block text-sm font-medium text-gray-700">
         Mensagem
       </label>
@@ -45,8 +45,8 @@
       ></textarea>
     </div>
 
-    <!-- Campos Personalizados -->
-    <div>
+    <!-- Campos Personalizados - Apenas para WHATSAPP-BAILEYS -->
+    <div v-if="!isBusinessIntegration">
       <label class="block text-sm font-medium text-gray-700 mb-2">
         Campos Personalizados
       </label>
@@ -87,6 +87,23 @@
       </div>
     </div>
 
+    <!-- Lista suspensa adicional para WHATSAPP-BUSINESS -->
+    <div v-if="isBusinessIntegration">
+      <label class="block text-sm font-medium text-gray-700">
+        Template de Negócio
+      </label>
+      <Dropdown
+        v-model="form.businessTemplate"
+        :options="businessTemplates"
+        optionLabel="name"
+        optionValue="id"
+        placeholder="Selecione um template de negócio"
+        class="w-full"
+        :class="{'p-invalid': submitted && isBusinessIntegration && !form.businessTemplate}"
+        dataKey="id"
+      />
+    </div>
+
     <!-- Seleção de Lista Validada -->
     <div>
       <label class="block text-sm font-medium text-gray-700">
@@ -124,7 +141,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, nextTick, computed } from 'vue'
+import { ref, onMounted, nextTick, computed, watch } from 'vue'
 import { webhooks } from '@/config/webhooks'
 import { useToast } from 'vue-toastification'
 import Dropdown from 'primevue/dropdown'
@@ -143,13 +160,15 @@ const emit = defineEmits(['submit', 'cancel'])
 // Dados reativos
 const connections = ref([])
 const validationLists = ref([])
+const businessTemplates = ref([]) // Nova lista para templates de negócio
 
 const form = ref({
   name: '',
   message: '',
   customFields: [],
-  connection: null, // Removemos connectionId pois não é necessário
+  connection: null,
   validationListId: null,
+  businessTemplate: null, // Novo campo para template de negócio
   output: {
     Resposta1: '',
     Resposta2: '',
@@ -159,7 +178,68 @@ const form = ref({
   }
 })
 
-// Removemos updateSelectedConnection pois não é mais necessário
+// Computed property para verificar se é integração de negócio
+const isBusinessIntegration = computed(() => {
+  return form.value.connection && form.value.connection.integration === 'WHATSAPP-BUSINESS'
+})
+
+// Observar mudanças na conexão para resetar campos quando necessário
+watch(() => form.value.connection, (newConnection) => {
+  if (newConnection && newConnection.integration === 'WHATSAPP-BUSINESS') {
+    // Resetar campos que não são usados em WHATSAPP-BUSINESS
+    form.value.message = ''
+    form.value.customFields = []
+    
+    // Carregar templates de negócio
+    fetchBusinessTemplates(newConnection)
+  } else {
+    // Resetar campo de template de negócio
+    form.value.businessTemplate = null
+    businessTemplates.value = []
+  }
+}, { deep: true })
+
+// Nova função para buscar templates de negócio
+const fetchBusinessTemplates = async (connection) => {
+  try {
+    // Verificar se temos uma conexão válida
+    if (!connection || !connection.name) {
+      businessTemplates.value = []
+      return
+    }
+    
+    console.log('Buscando templates de negócio para a conexão:', connection.name)
+    
+    // Fazer a chamada para a API com o nome da conexão
+    const response = await fetch(`${webhooks.business.templates}?connection=${connection.name}`)
+    
+    if (!response.ok) {
+      throw new Error(`Erro ao buscar templates de negócio: ${response.status}`)
+    }
+    
+    const data = await response.json()
+    console.log('Dados recebidos:', data)
+    
+    // Processar os dados recebidos
+    if (Array.isArray(data)) {
+      businessTemplates.value = data.map(template => ({
+        id: template.id || template.name,
+        name: template.name,
+        language: template.language || 'pt_BR',
+        status: template.status || 'APPROVED',
+        category: template.category || 'MARKETING'
+      }))
+    } else {
+      businessTemplates.value = []
+    }
+    
+    console.log('Templates de negócio carregados:', businessTemplates.value)
+  } catch (error) {
+    console.error('Erro ao carregar templates de negócio:', error)
+    toast.error(`Erro ao carregar templates de negócio: ${error.message}`)
+    businessTemplates.value = []
+  }
+}
 
 const fetchConnections = async () => {
   try {
@@ -167,7 +247,7 @@ const fetchConnections = async () => {
     
     if (!response.ok) throw new Error('Erro ao buscar conexões')
     connections.value = await response.json()
-    // console.log(connections.value);
+    console.log('Conexões carregadas:', connections.value)
   } catch (error) {
     console.error('Erro ao carregar conexões:', error)
     toast.error('Erro ao carregar conexões')
@@ -179,8 +259,6 @@ const fetchValidationLists = async () => {
     const response = await fetch(webhooks.validation.list)
     if (!response.ok) throw new Error('Erro ao carregar listas de validação')
     const data = await response.json()
-    
-    // console.log('Dados recebidos:', data)
     
     // Processa os dados recebidos
     if (Array.isArray(data) && data.length >= 2) {
@@ -197,8 +275,6 @@ const fetchValidationLists = async () => {
         }
       })
     }
-
-    // console.log('Listas processadas com leads:', validationLists.value)
   } catch (error) {
     console.error('Erro ao carregar listas:', error)
     toast.error('Erro ao carregar listas de validação')
@@ -213,31 +289,27 @@ onMounted(async () => {
     ])
     
     if (props.template) {
-      // console.log('Template recebido:', props.template)
-      
       // Encontra a conexão correspondente
       const matchingConnection = connections.value.find(c => 
-        c.name === props.template.template_connection
+        c.name === props.template.template_connection.name
       )
       
       // Procura a lista usando o ID do template
       const listId = parseInt(props.template.template_list_id)
-      // console.log('ID da lista a encontrar:', listId)
       
       // Encontra a lista nas listas disponíveis
       const matchingList = validationLists.value.find(list => 
         list.id === listId
       )
-      
-      // console.log('Lista encontrada:', matchingList)
 
       await nextTick(() => {
         form.value = {
           name: props.template.template_name,
-          message: props.template.template_message,
+          message: props.template.template_message || '',
           connection: matchingConnection || null,
           validationListId: listId,
           customFields: props.template.customFields || [],
+          businessTemplate: props.template.businessTemplate || null,
           output: props.template.output || {
             Resposta1: '',
             Resposta2: '',
@@ -245,6 +317,11 @@ onMounted(async () => {
             Resposta4: '',
             Resposta5: ''
           }
+        }
+        
+        // Se for integração de negócio, carrega os templates
+        if (matchingConnection && matchingConnection.integration === 'WHATSAPP-BUSINESS') {
+          fetchBusinessTemplates()
         }
       })
     }
@@ -255,6 +332,8 @@ onMounted(async () => {
 })
 
 const handleSubmit = () => {
+  submitted.value = true
+  
   if (!form.value.connection) {
     toast.error('Selecione uma conexão')
     return
@@ -262,6 +341,18 @@ const handleSubmit = () => {
 
   if (!form.value.validationListId) {
     toast.error('Selecione uma lista de validação')
+    return
+  }
+  
+  // Validação específica para integração de negócio
+  if (isBusinessIntegration.value && !form.value.businessTemplate) {
+    toast.error('Selecione um template de negócio')
+    return
+  }
+  
+  // Validação específica para integração Baileys
+  if (!isBusinessIntegration.value && !form.value.message) {
+    toast.error('Digite uma mensagem')
     return
   }
 
@@ -282,11 +373,13 @@ const handleSubmit = () => {
     template_connection: form.value.connection,
     template_message: form.value.message,
     template_list_id: form.value.validationListId,
-    template_list_name: selectedList.name
+    template_list_name: selectedList.name,
+    businessTemplate: form.value.businessTemplate
   }
 
   emit('submit', formData)
 }
+
 const addCustomField = () => {
   form.value.customFields.push({ name: '', value: '' })
 }
