@@ -137,16 +137,21 @@ export const useTemplateStore = defineStore('template', {
       try {
         this.isLoading = true
         
+        console.log('=== INICIANDO EXECUÇÃO DO TEMPLATE ===');
+        console.log('Template completo:', JSON.stringify(template, null, 2));
+        
         // Função auxiliar para selecionar mensagem aleatória
         const getRandomMessage = (messages) => {
           return messages[Math.floor(Math.random() * messages.length)];
         };
-
+    
         // Extrair os JIDs da lista de validação
         const jids = template.validationList.leads.map(lead => ({
           jid: lead.jid,
           message: getRandomMessage(template.aiResponses)
         }));
+        
+        console.log('JIDs extraídos:', jids);
         
         // Preparar os dados para envio
         const payload = {
@@ -158,7 +163,73 @@ export const useTemplateStore = defineStore('template', {
           leadsMessages: jids
         }
         
+        console.log('Payload inicial:', payload);
+        
+        // Verificar se é uma conexão business
+        let isBusinessConnection = false;
+        
+        if (template.template_connection && typeof template.template_connection === 'object') {
+          console.log('Tipo de conexão (objeto):', template.template_connection.integration);
+          isBusinessConnection = template.template_connection.integration === 'WHATSAPP-BUSINESS';
+        } else if (typeof template.template_connection === 'string') {
+          console.log('Tipo de conexão (string):', template.integration_type);
+          isBusinessConnection = template.integration_type === 'WHATSAPP-BUSINESS';
+        } 
+        
+        // Verificar também se há campos de template business no objeto
+        if (!isBusinessConnection && (template.business_template_id || template.business_template_name)) {
+          console.log('Detectado template business pelos campos business_template_id/name');
+          isBusinessConnection = true;
+        }
+        
+        console.log('É conexão business?', isBusinessConnection);
+        
+        if (isBusinessConnection) {
+          console.log('Executando template business');
+          console.log('businessTemplate:', template.businessTemplate);
+          
+          // Adicionar o nome do template business
+          if (template.businessTemplate) {
+            if (typeof template.businessTemplate === 'object') {
+              console.log('businessTemplate é um objeto com propriedades:', Object.keys(template.businessTemplate));
+              
+              if (template.businessTemplate.name) {
+                console.log('Usando nome do objeto businessTemplate:', template.businessTemplate.name);
+                payload.business_template_name = template.businessTemplate.name;
+              } else {
+                console.log('Objeto businessTemplate não tem propriedade name');
+              }
+            } else if (template.business_template_name) {
+              console.log('Usando business_template_name existente:', template.business_template_name);
+              payload.business_template_name = template.business_template_name;
+            } else if (typeof template.businessTemplate === 'string') {
+              console.log('businessTemplate é uma string (ID):', template.businessTemplate);
+              // Forçar o nome "hello_world" para templates business
+              payload.business_template_name = "hello_world";
+              console.log('Definindo business_template_name como "hello_world"');
+            } else {
+              console.log('Tipo de businessTemplate desconhecido:', typeof template.businessTemplate);
+              payload.business_template_name = "hello_world";
+            }
+          } else {
+            console.log('Template business sem businessTemplate definido');
+            payload.business_template_name = "hello_world";
+          }
+          
+          // Adicionar o ID do template business
+          if (typeof template.businessTemplate === 'object' && template.businessTemplate.id) {
+            payload.businessTemplate = template.businessTemplate.id;
+            console.log('Adicionando ID do template business:', payload.businessTemplate);
+          } else if (typeof template.businessTemplate === 'string') {
+            payload.businessTemplate = template.businessTemplate;
+            console.log('Adicionando ID do template business (string):', payload.businessTemplate);
+          }
+        }
+        
+        console.log('Payload final para envio:', JSON.stringify(payload, null, 2));
+        
         // Enviar para a API
+        console.log('Enviando para:', webhooks.templates.execute);
         const response = await fetch(webhooks.templates.execute, {
           method: 'POST',
           headers: {
@@ -167,18 +238,24 @@ export const useTemplateStore = defineStore('template', {
           body: JSON.stringify(payload)
         })
         
+        console.log('Status da resposta:', response.status);
+        
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}))
+          console.error('Erro na resposta:', errorData);
           throw new Error(errorData.message || 'Erro ao executar o template')
         }
         
-        return await response.json()
+        const responseData = await response.json();
+        console.log('Resposta da API:', responseData);
+        return responseData;
       } catch (error) {
         console.error('Erro ao executar template:', error)
         this.error = error.message
         throw error
       } finally {
         this.isLoading = false
+        console.log('=== FIM DA EXECUÇÃO DO TEMPLATE ===');
       }
     },
 
