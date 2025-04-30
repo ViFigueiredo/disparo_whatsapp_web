@@ -86,29 +86,25 @@ export const useTemplateStore = defineStore('template', {
       try {
         this.isLoading = true
         
-        // Preparar os dados para envio com todos os detalhes
+        // Função auxiliar para selecionar mensagem aleatória
+        const getRandomMessage = (messages) => {
+          return messages[Math.floor(Math.random() * messages.length)];
+        };
+
+        // Extrair os JIDs da lista de validação
+        const jids = template.validationList.leads.map(lead => ({
+          jid: lead.jid,
+          message: getRandomMessage(template.aiResponses)
+        }));
+        
+        // Preparar os dados para envio
         const payload = {
-          // Dados básicos do template
           template_id: template.id,
           template_name: template.template_name,
-          template_message: template.message || template.template_message,
           template_connection: template.template_connection,
           template_list_id: template.template_list_id,
           template_list_name: template.template_list_name,
-          
-          // Dados da lista de validação
-          validationList: template.validationList,
-          totalLeads: template.totalLeads,
-          
-          // Respostas da IA
-          aiResponses: template.aiResponses || [],
-          
-          // Dados adicionais que possam existir
-          customFields: template.customFields || [],
-          
-          // Metadados
-          created_at: template.created_at,
-          updated_at: template.updated_at
+          leadsMessages: jids
         }
         
         // Enviar para a API
