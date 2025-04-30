@@ -117,6 +117,11 @@ const handleTemplateSubmit = async (template) => {
       toast.success('Template atualizado com sucesso')
     } else {
       // Se não tem ID, é uma criação (incluindo clonagem)
+      // Verificar se é uma conexão business e adicionar o nome do template de negócio
+      if (template.connection && template.connection.integration === 'WHATSAPP-BUSINESS' && template.businessTemplate) {
+        // Adiciona o nome do template de negócio ao objeto template
+        template.businessTemplateName = template.businessTemplate.name || template.businessTemplate
+      }
       await templateStore.createTemplate(template)
       toast.success('Template criado com sucesso')
     }

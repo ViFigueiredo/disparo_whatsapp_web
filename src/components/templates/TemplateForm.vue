@@ -332,7 +332,7 @@ onMounted(async () => {
 })
 
 const handleSubmit = () => {
-  submitted.value = true
+  submitted.value = true;
   
   if (!form.value.connection) {
     toast.error('Selecione uma conexão')
@@ -367,18 +367,31 @@ const handleSubmit = () => {
 
   const formData = {
     ...form.value,
-    validationList: selectedList,
+    validationList: selectedList, // Sempre incluir o objeto completo da lista de validação
     leads: selectedList.leads,
     template_name: form.value.name,
     template_connection: form.value.connection,
     template_message: form.value.message,
     template_list_id: form.value.validationListId,
     template_list_name: selectedList.name,
-    businessTemplate: form.value.businessTemplate
+    businessTemplate: form.value.businessTemplate,
+    integration_type: form.value.connection ? form.value.connection.integration : null
   }
 
-  emit('submit', formData)
-}
+  // Se for um template de negócio, incluir o objeto completo
+  if (isBusinessIntegration.value && form.value.businessTemplate) {
+    // Encontrar o objeto completo do template de negócio
+    const selectedTemplate = businessTemplates.value.find(
+      template => template.id === form.value.businessTemplate
+    );
+    
+    if (selectedTemplate) {
+      formData.businessTemplate = selectedTemplate;
+    }
+  }
+  
+  emit('submit', formData);
+};
 
 const addCustomField = () => {
   form.value.customFields.push({ name: '', value: '' })
@@ -393,6 +406,39 @@ const submitted = ref(false)
 const isCloning = computed(() => {
   return props.template && !props.template.id
 })
+
+// Adicione esta função no componente TemplateForm.vue
+const handleConnectionChange = async (connection) => {
+  // Log da conexão selecionada
+  console.log('Conexão selecionada:', connection);
+  
+  // Verificar se é uma conexão business
+  if (connection && connection.integration === 'WHATSAPP-BUSINESS') {
+    console.log('Conexão business detectada, carregando templates de negócio...');
+    
+    // Carregar templates de negócio
+    try {
+      // Supondo que você tenha uma função para carregar templates de negócio
+      const businessTemplates = await loadBusinessTemplates(connection);
+      console.log('Templates de negócio carregados:', businessTemplates);
+      
+      // Log detalhado de cada template
+      if (Array.isArray(businessTemplates)) {
+        businessTemplates.forEach((template, index) => {
+          console.log(`Template ${index + 1}:`, {
+            id: template.id || 'N/A',
+            name: template.name || 'N/A',
+            language: template.language || 'N/A',
+            category: template.category || 'N/A',
+            rawData: template
+          });
+        });
+      }
+    } catch (error) {
+      console.error('Erro ao carregar templates de negócio:', error);
+    }
+  }
+}
 </script>
 
 <style>

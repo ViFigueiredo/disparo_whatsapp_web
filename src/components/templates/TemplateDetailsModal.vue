@@ -123,4 +123,50 @@ const previousSlide = () => {
 }
 
 defineEmits(['update:show'])
+
+// Obter o nome do template de negócio
+const getBusinessTemplateName = computed(() => {
+  if (!props.template) return 'Não especificado';
+  
+  // Se businessTemplate for um objeto com propriedade name
+  if (typeof props.template.businessTemplate === 'object' && props.template.businessTemplate?.name) {
+    return props.template.businessTemplate.name;
+  }
+  
+  // Se businessTemplate for uma string (ID), tentar encontrar o nome correspondente
+  if (typeof props.template.businessTemplate === 'string') {
+    // Se tivermos o nome do template em algum lugar, usá-lo
+    if (props.template.business_template_name && 
+        props.template.business_template_name !== props.template.businessTemplate) {
+      return props.template.business_template_name;
+    }
+    
+    // Caso contrário, usar o nome do template como fallback
+    return props.template.template_name || 'Template de Negócio WhatsApp';
+  }
+  
+  return 'Template de Negócio WhatsApp';
+});
+
+// Obter o idioma do template de negócio
+const getBusinessTemplateLanguage = computed(() => {
+  if (!props.template) return 'pt_BR';
+  
+  if (typeof props.template.businessTemplate === 'object' && props.template.businessTemplate?.language) {
+    return props.template.businessTemplate.language;
+  }
+  
+  return props.template.business_template_language || 'pt_BR';
+});
+
+// Obter a categoria do template de negócio
+const getBusinessTemplateCategory = computed(() => {
+  if (!props.template) return 'MARKETING';
+  
+  if (typeof props.template.businessTemplate === 'object' && props.template.businessTemplate?.category) {
+    return props.template.businessTemplate.category;
+  }
+  
+  return props.template.business_template_category || 'MARKETING';
+});
 </script>
