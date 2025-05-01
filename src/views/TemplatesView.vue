@@ -168,36 +168,49 @@ const deleteTemplate = async (template) => {
   }
 
   try {
+    isLoading.value = true // Adicionar loading durante a exclusão
     await templateStore.deleteTemplate(template.id)
-    // Atualiza a referência local dos templates
-    templates.value = templateStore.templates
+    
+    // Atualiza a referência local dos templates com filtro para evitar objetos vazios
+    if (Array.isArray(templateStore.templates)) {
+      templates.value = templateStore.templates.filter(t => 
+        t && t.id && Object.keys(t).length > 1
+      )
+    } else {
+      templates.value = []
+    }
+    
     toast.success('Template excluído com sucesso')
   } catch (error) {
     console.error('Erro ao excluir template:', error)
     toast.error('Erro ao excluir template')
+  } finally {
+    isLoading.value = false
   }
 }
 
-// Adiciona um watcher para manter a lista local sincronizada
-// Simplifica o watch para evitar loops desnecessários
-watch(
-  () => templateStore.templates,
-  (newTemplates) => {
-    if (newTemplates) {
-      templates.value = newTemplates
-    }
-  }
-)
+// Remover o watcher duplicado e manter apenas um com a lógica correta
+// Remover este watcher:
+// watch(
+//   () => templateStore.templates,
+//   (newTemplates) => {
+//     if (newTemplates) {
+//       templates.value = newTemplates
+//     }
+//   }
+// )
 
-// Modificar o watcher também para aplicar o mesmo filtro
+// Manter apenas este watcher com a lógica de filtro
 watch(
   () => templateStore.templates,
   (newTemplates) => {
     if (Array.isArray(newTemplates)) {
-      // Aplicar o mesmo filtro para remover templates vazios
+      // Aplicar o filtro para remover templates vazios
       templates.value = newTemplates.filter(template => {
         return template && template.id && Object.keys(template).length > 1
       })
+    } else {
+      templates.value = []
     }
   }
 )
