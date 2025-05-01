@@ -1,4 +1,14 @@
 <template>
+  <!-- Overlay de Loading -->
+  <div v-if="loading" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white p-5 rounded-lg shadow-lg flex flex-col items-center">
+      <div class="text-blue-600 mb-3" role="status">
+        <i class="fas fa-spinner fa-spin text-4xl text-blue-600 mb-4"></i>
+      </div>
+      <p class="text-gray-700">Carregando dados...</p>
+    </div>
+  </div>
+
   <form @submit.prevent="handleSubmit" class="space-y-4">
     <!-- Nome do Template -->
     <div>
@@ -28,6 +38,7 @@
         class="w-full"
         :class="{'p-invalid': submitted && !form.connection}"
         dataKey="name"
+        @change="handleConnectionChange"
       />
     </div>
 
@@ -147,6 +158,7 @@ import { useToast } from 'vue-toastification'
 import Dropdown from 'primevue/dropdown'
 
 const toast = useToast()
+const loading = ref(false) // Novo estado para controlar o loading
 
 const props = defineProps({
   template: {
@@ -202,6 +214,8 @@ watch(() => form.value.connection, (newConnection) => {
 // Nova função para buscar templates de negócio
 const fetchBusinessTemplates = async (connection) => {
   try {
+    loading.value = true // Ativar loading
+    
     // Verificar se temos uma conexão válida
     if (!connection || !connection.name) {
       businessTemplates.value = []
@@ -238,11 +252,14 @@ const fetchBusinessTemplates = async (connection) => {
     console.error('Erro ao carregar templates de negócio:', error)
     toast.error(`Erro ao carregar templates de negócio: ${error.message}`)
     businessTemplates.value = []
+  } finally {
+    loading.value = false // Desativar loading independente do resultado
   }
 }
 
 const fetchConnections = async () => {
   try {
+    loading.value = true // Ativar loading
     const response = await fetch(webhooks.connections.list)
     
     if (!response.ok) throw new Error('Erro ao buscar conexões')
@@ -251,11 +268,14 @@ const fetchConnections = async () => {
   } catch (error) {
     console.error('Erro ao carregar conexões:', error)
     toast.error('Erro ao carregar conexões')
+  } finally {
+    loading.value = false // Desativar loading independente do resultado
   }
 }
 
 const fetchValidationLists = async () => {
   try {
+    loading.value = true // Ativar loading
     const response = await fetch(webhooks.validation.list)
     if (!response.ok) throw new Error('Erro ao carregar listas de validação')
     const data = await response.json()
@@ -278,21 +298,36 @@ const fetchValidationLists = async () => {
   } catch (error) {
     console.error('Erro ao carregar listas:', error)
     toast.error('Erro ao carregar listas de validação')
+  } finally {
+    loading.value = false // Desativar loading independente do resultado
   }
 }
 
 onMounted(async () => {
+  console.log('Template recebido para edição:', props.template)
   try {
+    loading.value = true // Ativar loading no início do carregamento
+    
     await Promise.all([
       fetchConnections(),
       fetchValidationLists()
     ])
     
     if (props.template) {
-      // Encontra a conexão correspondente
-      const matchingConnection = connections.value.find(c => 
-        c.name === props.template.template_connection.name
-      )
+      console.log('Estrutura do template recebido:', JSON.stringify(props.template, null, 2))
+      
+      // Encontra a conexão correspondente - verifica diferentes formatos possíveis
+      let matchingConnection = null
+      
+      if (typeof props.template.template_connection === 'string') {
+        // Se for uma string, procura pelo nome
+        matchingConnection = connections.value.find(c => c.name === props.template.template_connection)
+      } else if (props.template.template_connection && props.template.template_connection.name) {
+        // Se for um objeto, procura pelo nome do objeto
+        matchingConnection = connections.value.find(c => c.name === props.template.template_connection.name)
+      }
+      
+      console.log('Conexão encontrada:', matchingConnection)
       
       // Procura a lista usando o ID do template
       const listId = parseInt(props.template.template_list_id)
@@ -302,34 +337,104 @@ onMounted(async () => {
         list.id === listId
       )
 
-      await nextTick(() => {
-        form.value = {
-          name: props.template.template_name,
-          message: props.template.template_message || '',
-          connection: matchingConnection || null,
-          validationListId: listId,
-          customFields: props.template.customFields || [],
-          businessTemplate: props.template.businessTemplate || null,
-          output: props.template.output || {
-            Resposta1: '',
-            Resposta2: '',
-            Resposta3: '',
-            Resposta4: '',
-            Resposta5: ''
+      // MODIFICAÇÃO IMPORTANTE: Se for integração de negócio, carrega os templates ANTES de preencher o formulário
+      if (matchingConnection && matchingConnection.integration === 'WHATSAPP-BUSINESS') {
+        console.log('Detectada conexão business na edição, carregando templates...')
+        await fetchBusinessTemplates(matchingConnection)
+      }
+
+      // Agora preenchemos o formulário DEPOIS de carregar os templates
+      form.value = {
+        name: props.template.template_name,
+        message: props.template.template_message || '',
+        connection: matchingConnection || null,
+        validationListId: listId,
+        customFields: props.template.customFields || [],
+        businessTemplate: null, // Será definido abaixo
+        output: props.template.output || {
+          Resposta1: '',
+          Resposta2: '',
+          Resposta3: '',
+          Resposta4: '',
+          Resposta5: ''
+        }
+      }
+      
+      // Se for integração de negócio, definimos o template de negócio
+      if (matchingConnection && matchingConnection.integration === 'WHATSAPP-BUSINESS') {
+        // Verificar se temos um businessTemplate salvo
+        if (props.template.business_template_id) {
+          form.value.businessTemplate = props.template.business_template_id
+          console.log('Template de negócio selecionado pelo ID:', props.template.business_template_id)
+        } else if (props.template.businessTemplate) {
+          console.log('Template de negócio encontrado no objeto:', props.template.businessTemplate)
+          
+          // Verificar se o template está no formato de ID ou objeto completo
+          let templateId = null
+          
+          if (typeof props.template.businessTemplate === 'string') {
+            templateId = props.template.businessTemplate
+          } else if (typeof props.template.businessTemplate === 'object') {
+            templateId = props.template.businessTemplate.id || props.template.businessTemplate.name
+          }
+          
+          // Definir o valor no formulário apenas se encontrarmos um ID válido
+          if (templateId) {
+            console.log('Definindo template de negócio para:', templateId)
+            form.value.businessTemplate = templateId
+            
+            // Verificar se o template existe na lista carregada
+            const templateExists = businessTemplates.value.some(t => t.id === templateId)
+            if (!templateExists) {
+              console.warn('Aviso: O template selecionado não foi encontrado na lista de templates disponíveis')
+            }
           }
         }
-        
-        // Se for integração de negócio, carrega os templates
-        if (matchingConnection && matchingConnection.integration === 'WHATSAPP-BUSINESS') {
-          fetchBusinessTemplates()
-        }
-      })
+      }
     }
   } catch (error) {
     console.error('Erro ao inicializar o formulário:', error)
     toast.error('Erro ao carregar os dados do template')
+  } finally {
+    loading.value = false // Desativar loading no final do carregamento
   }
 })
+
+// Modificar a função handleConnectionChange para usar fetchBusinessTemplates
+const handleConnectionChange = async (event) => {
+  const connection = event.value
+  
+  // Log da conexão selecionada
+  console.log('Conexão selecionada:', connection)
+  
+  // Verificar se é uma conexão business
+  if (connection && connection.integration === 'WHATSAPP-BUSINESS') {
+    console.log('Conexão business detectada, carregando templates de negócio...')
+    
+    // Resetar campos que não são usados em WHATSAPP-BUSINESS
+    form.value.message = ''
+    form.value.customFields = []
+    
+    // Carregar templates de negócio usando a função existente
+    await fetchBusinessTemplates(connection)
+    
+    // Log detalhado de cada template
+    if (Array.isArray(businessTemplates.value)) {
+      businessTemplates.value.forEach((template, index) => {
+        console.log(`Template ${index + 1}:`, {
+          id: template.id || 'N/A',
+          name: template.name || 'N/A',
+          language: template.language || 'N/A',
+          category: template.category || 'N/A'
+        })
+      })
+    }
+  } else {
+    // Resetar campo de template de negócio
+    form.value.businessTemplate = null
+    businessTemplates.value = []
+  }
+}
 
 const handleSubmit = () => {
   submitted.value = true;
@@ -387,6 +492,7 @@ const handleSubmit = () => {
     
     if (selectedTemplate) {
       formData.businessTemplate = selectedTemplate;
+      console.log('Template de negócio selecionado para envio:', selectedTemplate);
     }
   }
   
@@ -406,42 +512,30 @@ const submitted = ref(false)
 const isCloning = computed(() => {
   return props.template && !props.template.id
 })
-
-// Adicione esta função no componente TemplateForm.vue
-const handleConnectionChange = async (connection) => {
-  // Log da conexão selecionada
-  console.log('Conexão selecionada:', connection);
-  
-  // Verificar se é uma conexão business
-  if (connection && connection.integration === 'WHATSAPP-BUSINESS') {
-    console.log('Conexão business detectada, carregando templates de negócio...');
-    
-    // Carregar templates de negócio
-    try {
-      // Supondo que você tenha uma função para carregar templates de negócio
-      const businessTemplates = await loadBusinessTemplates(connection);
-      console.log('Templates de negócio carregados:', businessTemplates);
-      
-      // Log detalhado de cada template
-      if (Array.isArray(businessTemplates)) {
-        businessTemplates.forEach((template, index) => {
-          console.log(`Template ${index + 1}:`, {
-            id: template.id || 'N/A',
-            name: template.name || 'N/A',
-            language: template.language || 'N/A',
-            category: template.category || 'N/A',
-            rawData: template
-          });
-        });
-      }
-    } catch (error) {
-      console.error('Erro ao carregar templates de negócio:', error);
-    }
-  }
-}
 </script>
 
 <style>
+/* Estilo para o spinner de loading */
+/* .spinner-border {
+  display: inline-block;
+  width: 2rem;
+  height: 2rem;
+  vertical-align: text-bottom;
+  border: 0.25em solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  -webkit-animation: spinner-border 0.75s linear infinite;
+  animation: spinner-border 0.75s linear infinite;
+}
+
+@-webkit-keyframes spinner-border {
+  to { -webkit-transform: rotate(360deg); transform: rotate(360deg); }
+}
+
+@keyframes spinner-border {
+  to { transform: rotate(360deg); }
+} */
+
 .p-dropdown {
   width: 100%;
   border-radius: 0.375rem;
