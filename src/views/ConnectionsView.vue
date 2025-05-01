@@ -4,237 +4,178 @@
     <div v-if="isLoading" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999]">
       <div class="bg-white p-8 rounded-lg shadow-lg flex flex-col items-center">
         <i class="fas fa-spinner fa-spin text-4xl text-blue-600 mb-4"></i>
-        <p class="text-gray-700">Carregando template...</p>
+        <p class="text-gray-700">Carregando conexões...</p>
       </div>
     </div>
 
     <div class="flex justify-between items-center">
-      <h2 class="text-2xl font-bold text-gray-900">Conexões de Whatsapp</h2>
-      <base-button @click="openCreateModal">
-        <i class="fas fa-plus mr-2"></i>
-        Nova Conexão
+      <h2 class="text-2xl font-bold text-gray-900">Conexões de WhatsApp</h2>
+      <base-button @click="refreshConnections">
+        <i class="fas fa-sync-alt mr-2"></i>
+        Atualizar Conexões
       </base-button>
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      <template-card v-for="template in templates" :key="template.id" :template="template" @edit="openEditModal"
-        @clone="cloneTemplate" @preview="showPreview" @validate="validateTemplate" @delete="deleteTemplate"
-        @execute="executeTemplate" />
+      <connection-card 
+        v-for="connection in connections" 
+        :key="connection.id" 
+        :connection="connection"
+        @view-details="showConnectionDetails"
+      />
     </div>
 
-    <base-modal v-model="showTemplateModal" :title="getModalTitle">
-      <template-form :template="currentTemplate" @submit="handleTemplateSubmit" @cancel="closeTemplateModal" />
-    </base-modal>
+    <base-modal v-if="selectedConnection" v-model="showDetailsModal" title="Detalhes da Conexão">
+      <div class="bg-white p-4 rounded-lg">
+        <div class="space-y-4">
+          <div class="flex items-center space-x-4">
+            <div class="w-16 h-16 rounded-full overflow-hidden">
+              <img 
+                v-if="selectedConnection.profilePicUrl" 
+                :src="selectedConnection.profilePicUrl" 
+                alt="Foto de perfil"
+                class="w-full h-full object-cover"
+                @error="handleImageError"
+              />
+              <div v-else class="w-full h-full bg-gray-200 flex items-center justify-center">
+                <i class="fas fa-user text-gray-400 text-2xl"></i>
+              </div>
+            </div>
+            <div>
+              <h3 class="text-lg font-semibold">{{ selectedConnection.profileName || selectedConnection.name }}</h3>
+              <p class="text-sm text-gray-500">{{ selectedConnection.ownerJid }}</p>
+              <div class="flex items-center mt-1">
+                <span 
+                  :class="[
+                    'inline-flex px-2 py-1 text-xs font-medium rounded-full', 
+                    selectedConnection.connectionStatus === 'open' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                  ]"
+                >
+                  {{ selectedConnection.connectionStatus === 'open' ? 'Conectado' : 'Desconectado' }}
+                </span>
+              </div>
+            </div>
+          </div>
 
-    <base-modal v-model="showPreviewModal" title="Preview do Template">
-      <div class="bg-gray-50 p-4 rounded-lg">
-        <pre class="whitespace-pre-wrap">{{ previewData }}</pre>
+          <div class="border-t pt-4">
+            <h4 class="font-medium mb-2">Informações da Conexão</h4>
+            <div class="grid grid-cols-2 gap-2 text-sm">
+              <div>
+                <span class="text-gray-500">ID:</span>
+                <p class="font-mono text-xs break-all">{{ selectedConnection.id }}</p>
+              </div>
+              <div>
+                <span class="text-gray-500">Nome:</span>
+                <p>{{ selectedConnection.name }}</p>
+              </div>
+              <div>
+                <span class="text-gray-500">Integração:</span>
+                <p>{{ selectedConnection.integration }}</p>
+              </div>
+              <div>
+                <span class="text-gray-500">Cliente:</span>
+                <p>{{ selectedConnection.clientName }}</p>
+              </div>
+              <div>
+                <span class="text-gray-500">Criado em:</span>
+                <p>{{ formatDate(selectedConnection.createdAt) }}</p>
+              </div>
+              <div>
+                <span class="text-gray-500">Atualizado em:</span>
+                <p>{{ formatDate(selectedConnection.updatedAt) }}</p>
+              </div>
+            </div>
+          </div>
+
+          <div v-if="selectedConnection.Chatwoot" class="border-t pt-4">
+            <h4 class="font-medium mb-2">Integração Chatwoot</h4>
+            <div class="grid grid-cols-2 gap-2 text-sm">
+              <div>
+                <span class="text-gray-500">Status:</span>
+                <p>{{ selectedConnection.Chatwoot.enabled ? 'Ativado' : 'Desativado' }}</p>
+              </div>
+              <div>
+                <span class="text-gray-500">ID da Conta:</span>
+                <p>{{ selectedConnection.Chatwoot.accountId }}</p>
+              </div>
+              <div>
+                <span class="text-gray-500">Nome da Caixa:</span>
+                <p>{{ selectedConnection.Chatwoot.nameInbox }}</p>
+              </div>
+              <div>
+                <span class="text-gray-500">URL:</span>
+                <p class="truncate">{{ selectedConnection.Chatwoot.url }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </base-modal>
-
-    <template-details-modal v-if="selectedTemplate" v-model:show="showDetailsModal" :template="selectedTemplate" />
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, watch, computed } from 'vue'
-import { useTemplateStore } from '../stores/template'
+import { ref, onMounted } from 'vue'
 import { useToast } from 'vue-toastification'
 import BaseButton from '../components/common/BaseButton.vue'
 import BaseModal from '../components/common/BaseModal.vue'
-import TemplateCard from '../components/templates/TemplateCard.vue'
-import TemplateForm from '../components/templates/TemplateForm.vue'
-import TemplateDetailsModal from '../components/templates/TemplateDetailsModal.vue'
+import ConnectionCard from '../components/connections/ConnectionCard.vue'
+import { useConnectionStore } from '../stores/connection'
 
 const toast = useToast()
-const templateStore = useTemplateStore()
-const showTemplateModal = ref(false)
-const showPreviewModal = ref(false)
-const showDetailsModal = ref(false) // Added missing ref
-const currentTemplate = ref(null)
-const previewData = ref(null)
-const selectedTemplate = ref(null) // Added missing ref
-
-const templates = ref([])
-
-onMounted(async () => {
-  try {
-    // Adicionar loading para o carregamento inicial
-    isLoading.value = true
-    
-    await templateStore.fetchTemplates()
-    
-    // Filtrar templates vazios ou inválidos
-    if (Array.isArray(templateStore.templates)) {
-      templates.value = templateStore.templates.filter(template => {
-        // Verificar se o template tem pelo menos um ID e não é um objeto vazio
-        return template && template.id && Object.keys(template).length > 1
-      })
-      
-      console.log('Templates filtrados:', templates.value)
-    } else {
-      templates.value = []
-      console.warn('Nenhum template válido encontrado')
-    }
-  } catch (error) {
-    console.error('Erro ao carregar templates:', error)
-    toast.error('Erro ao carregar templates')
-  } finally {
-    isLoading.value = false
-  }
-})
-
-const openCreateModal = () => {
-  currentTemplate.value = null
-  showTemplateModal.value = true
-}
-
-const openEditModal = (template) => {
-  currentTemplate.value = { ...template }
-  showTemplateModal.value = true
-}
-
-const closeTemplateModal = () => {
-  showTemplateModal.value = false
-  currentTemplate.value = null
-}
-
+const connectionStore = useConnectionStore()
+const connections = ref([])
 const isLoading = ref(false)
+const showDetailsModal = ref(false)
+const selectedConnection = ref(null)
 
-const handleTemplateSubmit = async (template) => {
-  isLoading.value = true
-  try {
-    if (currentTemplate.value && currentTemplate.value.id) {
-      // Se tem ID, é uma atualização
-      const templateWithId = {
-        ...template,
-        id: currentTemplate.value.id
-      }
-      await templateStore.updateTemplate(templateWithId)
-      toast.success('Template atualizado com sucesso')
-    } else {
-      // Se não tem ID, é uma criação (incluindo clonagem)
-      // Verificar se é uma conexão business e adicionar o nome do template de negócio
-      if (template.connection && template.connection.integration === 'WHATSAPP-BUSINESS' && template.businessTemplate) {
-        // Adiciona o nome do template de negócio ao objeto template
-        template.businessTemplateName = template.businessTemplate.name || template.businessTemplate
-      }
-      await templateStore.createTemplate(template)
-      toast.success('Template criado com sucesso')
-    }
-
-    // Atualiza a lista de templates
-    await templateStore.fetchTemplates()
-    templates.value = templateStore.templates
-
-    // Fecha o modal
-    closeTemplateModal()
-  } catch (error) {
-    console.error('Erro ao salvar template:', error)
-    toast.error('Erro ao salvar template')
-  } finally {
-    isLoading.value = false
-  }
+// Formatar data para exibição
+const formatDate = (dateString) => {
+  if (!dateString) return 'N/A'
+  const date = new Date(dateString)
+  return new Intl.DateTimeFormat('pt-BR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  }).format(date)
 }
 
-// Mantenha apenas esta implementação simples da clonagem
-const cloneTemplate = (template) => {
-  const clonedTemplate = JSON.parse(JSON.stringify(template)) // cópia profunda
-  currentTemplate.value = {
-    ...clonedTemplate,
-    id: null,
-    name: `${template.name} (Cópia)`
-  }
-  showTemplateModal.value = true
+// Lidar com erro de carregamento de imagem
+const handleImageError = (event) => {
+  event.target.src = ''
+  event.target.classList.add('hidden')
+  event.target.nextElementSibling?.classList.remove('hidden')
 }
 
-const showPreview = (template) => {
-  // console.log('Template selecionado:', template) // Adicionar log para debug
-  if (template) {
-    selectedTemplate.value = { ...template } // Criar uma cópia do template
-    showDetailsModal.value = true
-  }
-}
-
-const validateTemplate = async (template) => {
-  await templateStore.validateTemplate(template)
-}
-
-
-
-const deleteTemplate = async (template) => {
-  if (!confirm('Tem certeza que deseja excluir este template?')) {
-    return
-  }
-
-  try {
-    isLoading.value = true // Adicionar loading durante a exclusão
-    await templateStore.deleteTemplate(template.id)
-    
-    // Atualiza a referência local dos templates com filtro para evitar objetos vazios
-    if (Array.isArray(templateStore.templates)) {
-      templates.value = templateStore.templates.filter(t => 
-        t && t.id && Object.keys(t).length > 1
-      )
-    } else {
-      templates.value = []
-    }
-    
-    toast.success('Template excluído com sucesso')
-  } catch (error) {
-    console.error('Erro ao excluir template:', error)
-    toast.error('Erro ao excluir template')
-  } finally {
-    isLoading.value = false
-  }
-}
-
-// Manter apenas este watcher com a lógica de filtro
-watch(
-  () => templateStore.templates,
-  (newTemplates) => {
-    if (Array.isArray(newTemplates)) {
-      // Aplicar o filtro para remover templates vazios
-      templates.value = newTemplates.filter(template => {
-        return template && template.id && Object.keys(template).length > 1
-      })
-    } else {
-      templates.value = []
-    }
-  }
-)
-
-// Adicione esta computed property no script 
-const getModalTitle = computed(() => {
-  if (!currentTemplate.value) return 'Novo Template'
-  if (currentTemplate.value.id) return 'Editar Template'
-  return 'Clonar Template'
-})
-
-const executeTemplate = async (template) => {
+// Buscar conexões
+const fetchConnections = async () => {
   try {
     isLoading.value = true
-
-    // Verificar se o template tem todos os dados necessários
-    if (!template.template_list_id) {
-      toast.warning('Este template não possui uma lista de validação associada')
-      return
-    }
-
-    // Executar o template com todos os dados
-    const result = await templateStore.executeTemplate(template)
-
-    // Mostrar mensagem de sucesso com detalhes
-    toast.success(`Disparo iniciado com sucesso! ${result.message || ''}`)
-
-    // Opcional: Mostrar detalhes adicionais do disparo
-    console.log('Detalhes do disparo:', result)
-
+    await connectionStore.fetchConnections()
+    connections.value = connectionStore.connections
   } catch (error) {
-    console.error('Erro ao executar template:', error)
-    toast.error(`Erro ao executar disparo: ${error.message}`)
+    console.error('Erro ao carregar conexões:', error)
+    toast.error('Erro ao carregar conexões')
   } finally {
     isLoading.value = false
   }
 }
+
+// Atualizar conexões
+const refreshConnections = () => {
+  fetchConnections()
+  toast.info('Atualizando lista de conexões...')
+}
+
+// Mostrar detalhes da conexão
+const showConnectionDetails = (connection) => {
+  selectedConnection.value = connection
+  showDetailsModal.value = true
+}
+
+onMounted(() => {
+  fetchConnections()
+})
 </script>
