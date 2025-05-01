@@ -13,9 +13,9 @@
                 class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
                 <i class="fas fa-robot mr-2"></i>
                 Agentes IA
-              </router-link>
+              </router-link> -->
 
-              <router-link to=""
+              <!-- <router-link to=""
                 class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
                 <i class="fas fa-bolt mr-2"></i>
                 Automações
@@ -25,26 +25,26 @@
                 class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
                 <i class="fas fa-chart-bar mr-2"></i>
                 Relatórios
-              </router-link>
-
-              <router-link to=""
-                class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
-                <i class="fab fa-whatsapp mr-2"></i>
-                Conexões
               </router-link> -->
 
               <router-link to="/"
-                class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
-                <i class="fas fa-file-signature mr-2"></i>
-                Templates
-              </router-link>
+              class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+              <i class="fas fa-file-signature mr-2"></i>
+              Templates
+            </router-link>
+            
+            <router-link to="/leads"
+            class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+            <i class="fas fa-users mr-2"></i>
+            Clientes
+          </router-link>
 
-              <router-link to="/leads"
-                class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
-                <i class="fas fa-users mr-2"></i>
-                Clientes
-              </router-link>
-            </div>
+          <router-link to="/connections"
+            class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+            <i class="fab fa-whatsapp mr-2"></i>
+            Conexões
+          </router-link>
+        </div>  
 
             <!-- Avatar Menu Dropdown -->
             <!-- <div class="ml-4 flex items-center md:ml-6"> -->

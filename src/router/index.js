@@ -13,7 +13,12 @@ const routes = [
       {
         path: 'leads',
         name: 'leads',
-        component: () => import('../views/ValidationView.vue')
+        component: () => import('../views/LeadsView.vue')
+      },
+      {
+        path: 'connections',
+        name: 'connections',
+        component: () => import('../views/ConnectionsView.vue')
       },
     ]
   }

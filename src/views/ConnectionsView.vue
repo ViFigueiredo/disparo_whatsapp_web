@@ -9,10 +9,10 @@
     </div>
 
     <div class="flex justify-between items-center">
-      <h2 class="text-2xl font-bold text-gray-900">Templates de Mensagem</h2>
+      <h2 class="text-2xl font-bold text-gray-900">Conexões de Whatsapp</h2>
       <base-button @click="openCreateModal">
         <i class="fas fa-plus mr-2"></i>
-        Novo Template
+        Nova Conexão
       </base-button>
     </div>
 
