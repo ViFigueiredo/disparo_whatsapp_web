@@ -17,7 +17,7 @@
       </div>
 
       <!-- Botão de Debug -->
-      <!-- <div class="flex justify-end">
+      <div class="flex justify-end">
         <button 
           @click="toggleDebug" 
           class="px-3 py-1 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100"
@@ -25,7 +25,7 @@
           <i class="fas fa-bug mr-1"></i>
           {{ showDebug ? 'Ocultar Debug' : 'Mostrar Debug' }}
         </button>
-      </div> -->
+      </div>
 
       <!-- Template de Negócio - Apenas para WHATSAPP-BUSINESS -->
       <div v-if="isBusinessTemplate" class="space-y-4">
