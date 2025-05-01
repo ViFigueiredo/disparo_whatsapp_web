@@ -10,10 +10,16 @@
 
     <div class="flex justify-between items-center">
       <h2 class="text-2xl font-bold text-gray-900">Conexões de WhatsApp</h2>
-      <base-button @click="refreshConnections">
-        <i class="fas fa-sync-alt mr-2"></i>
-        Atualizar Conexões
-      </base-button>
+      <div class="flex space-x-3">
+        <base-button @click="openCreateConnectionModal">
+          <i class="fas fa-plus mr-2"></i>
+          Nova Conexão
+        </base-button>
+        <base-button @click="refreshConnections">
+          <i class="fas fa-sync-alt mr-2"></i>
+          Atualizar Conexões
+        </base-button>
+      </div>
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -22,9 +28,11 @@
         :key="connection.id" 
         :connection="connection"
         @view-details="showConnectionDetails"
+        @connection-updated="fetchConnections"
       />
     </div>
 
+    <!-- Modal de Detalhes da Conexão -->
     <base-modal v-if="selectedConnection" v-model="showDetailsModal" title="Detalhes da Conexão">
       <div class="bg-white p-4 rounded-lg">
         <div class="space-y-4">
@@ -111,6 +119,58 @@
         </div>
       </div>
     </base-modal>
+
+    <!-- Modal de Criação de Conexão -->
+    <base-modal v-model="showCreateModal" title="Nova Conexão">
+      <form @submit.prevent="createConnection" class="space-y-4">
+        <!-- Nome da Conexão -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700">
+            Nome da Conexão
+          </label>
+          <input
+            v-model="newConnection.name"
+            type="text"
+            required
+            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+            placeholder="Digite o nome da conexão"
+          />
+        </div>
+
+        <!-- Número do WhatsApp -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700">
+            Número do WhatsApp
+          </label>
+          <input
+            v-model="newConnection.phoneNumber"
+            type="text"
+            required
+            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+            placeholder="Ex: 5511999999999 (com código do país)"
+          />
+        </div>
+
+        <!-- Botões -->
+        <div class="flex justify-end gap-3 mt-6">
+          <button
+            type="button"
+            @click="showCreateModal = false"
+            class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+          >
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
+            :disabled="isCreating"
+          >
+            <i v-if="isCreating" class="fas fa-spinner fa-spin mr-2"></i>
+            {{ isCreating ? 'Criando...' : 'Criar Conexão' }}
+          </button>
+        </div>
+      </form>
+    </base-modal>
   </div>
 </template>
 
@@ -128,6 +188,14 @@ const connections = ref([])
 const isLoading = ref(false)
 const showDetailsModal = ref(false)
 const selectedConnection = ref(null)
+
+// Estado para o modal de criação
+const showCreateModal = ref(false)
+const isCreating = ref(false)
+const newConnection = ref({
+  name: '',
+  phoneNumber: ''
+})
 
 // Formatar data para exibição
 const formatDate = (dateString) => {
@@ -173,6 +241,42 @@ const refreshConnections = () => {
 const showConnectionDetails = (connection) => {
   selectedConnection.value = connection
   showDetailsModal.value = true
+}
+
+// Abrir modal de criação de conexão
+const openCreateConnectionModal = () => {
+  // Resetar o formulário
+  newConnection.value = {
+    name: '',
+    phoneNumber: ''
+  }
+  showCreateModal.value = true
+}
+
+// Criar nova conexão
+const createConnection = async () => {
+  try {
+    isCreating.value = true
+    
+    // Preparar dados para envio
+    const connectionData = {
+      name: newConnection.value.name,
+      phoneNumber: newConnection.value.phoneNumber
+    }
+    
+    // Enviar para o webhook
+    await connectionStore.createConnection(connectionData)
+    
+    // Fechar modal e atualizar lista
+    showCreateModal.value = false
+    toast.success('Conexão criada com sucesso!')
+    fetchConnections()
+  } catch (error) {
+    console.error('Erro ao criar conexão:', error)
+    toast.error('Erro ao criar conexão: ' + (error.message || 'Erro desconhecido'))
+  } finally {
+    isCreating.value = false
+  }
 }
 
 onMounted(() => {

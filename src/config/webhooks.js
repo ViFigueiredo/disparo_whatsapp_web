@@ -12,8 +12,11 @@ export const webhooks = {
     save: import.meta.env.VITE_WEBHOOK_VALIDATION_SAVE,
     delete: import.meta.env.VITE_WEBHOOK_VALIDATION_DELETE
   },
+  // Adicionar o endpoint para criação de conexões
   connections: {
-    list: import.meta.env.VITE_WEBHOOK_CONNECTIONS_LIST
+    list: import.meta.env.VITE_WEBHOOK_CONNECTIONS_LIST,
+    create: import.meta.env.VITE_WEBHOOK_CONNECTIONS_CREATE,
+    connect: import.meta.env.VITE_WEBHOOK_CONNECTIONS_CONNECT
   },
   business: {
     templates: import.meta.env.VITE_WEBHOOK_BUSINESS_TEMPLATES || import.meta.env.VITE_WEBHOOK_TEMPLATE_CLOUD

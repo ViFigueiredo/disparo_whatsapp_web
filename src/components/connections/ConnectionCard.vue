@@ -46,6 +46,17 @@
           <span class="font-medium">{{ connection.Chatwoot.enabled ? 'Ativado' : 'Desativado' }}</span>
         </div>
       </div>
+      
+      <!-- Botão de Conectar (exibido apenas quando desconectado) -->
+      <div v-if="connection.connectionStatus !== 'open'" class="mt-3">
+        <button 
+          @click="openConnectModal" 
+          class="w-full py-2 px-3 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md transition-colors duration-200 flex items-center justify-center"
+        >
+          <i class="fas fa-plug mr-2"></i>
+          Conectar
+        </button>
+      </div>
     </div>
     
     <div class="bg-gray-50 px-4 py-3 border-t border-gray-200">
@@ -63,12 +74,91 @@
       </div>
     </div>
   </div>
+  
+  <!-- Modal de Conexão -->
+  <base-modal v-model="showConnectModal" title="Conectar WhatsApp">
+    <div class="p-4 space-y-4">
+      <div v-if="connectStep === 'initial'" class="text-center">
+        <p class="mb-4">Iniciando conexão para <strong>{{ connection.name }}</strong>...</p>
+        <div class="flex justify-center">
+          <i class="fas fa-spinner fa-spin text-4xl text-blue-600"></i>
+        </div>
+      </div>
+      
+      <div v-else-if="connectStep === 'qrcode'" class="text-center">
+        <p class="mb-4">Escaneie o QR Code com seu WhatsApp:</p>
+        <div class="flex justify-center mb-4">
+          <img :src="qrCodeImage" alt="QR Code" class="w-64 h-64" />
+        </div>
+        <p class="text-sm text-gray-500">
+          Abra o WhatsApp no seu celular > Menu > WhatsApp Web > Escanear código QR
+        </p>
+      </div>
+      
+      <div v-else-if="connectStep === 'pairingCode'" class="text-center">
+        <p class="mb-4">Digite o código de pareamento no seu WhatsApp:</p>
+        <div class="flex justify-center mb-4">
+          <div class="text-3xl font-bold tracking-widest bg-gray-100 p-4 rounded-lg">
+            {{ pairingCode }}
+          </div>
+        </div>
+        <p class="text-sm text-gray-500">
+          Abra o WhatsApp no seu celular > Menu > Dispositivos vinculados > Vincular dispositivo
+        </p>
+      </div>
+      
+      <div v-else-if="connectStep === 'success'" class="text-center">
+        <div class="mb-4 flex justify-center">
+          <i class="fas fa-check-circle text-5xl text-green-500"></i>
+        </div>
+        <p class="text-lg font-medium text-green-700">Conexão estabelecida com sucesso!</p>
+        <p class="mt-2">O WhatsApp foi conectado e está pronto para uso.</p>
+      </div>
+      
+      <div v-else-if="connectStep === 'error'" class="text-center">
+        <div class="mb-4 flex justify-center">
+          <i class="fas fa-times-circle text-5xl text-red-500"></i>
+        </div>
+        <p class="text-lg font-medium text-red-700">Erro ao conectar</p>
+        <p class="mt-2">{{ errorMessage }}</p>
+      </div>
+      
+      <div class="flex justify-end mt-6">
+        <button 
+          v-if="connectStep === 'error' || connectStep === 'success'"
+          @click="showConnectModal = false"
+          class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+        >
+          Fechar
+        </button>
+        <button 
+          v-if="connectStep === 'qrcode' || connectStep === 'pairingCode'"
+          @click="cancelConnection"
+          class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 mr-2"
+        >
+          Cancelar
+        </button>
+      </div>
+    </div>
+  </base-modal>
 </template>
 
 <script setup>
-import { defineProps, defineEmits } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
+import { useToast } from 'vue-toastification'
+import BaseModal from '../common/BaseModal.vue'
+import { useConnectionStore } from '../../stores/connection'
 
-defineEmits(['view-details'])
+const toast = useToast()
+const connectionStore = useConnectionStore()
+const showConnectModal = ref(false)
+const connectStep = ref('initial')
+const qrCodeImage = ref('')
+const pairingCode = ref('')
+const errorMessage = ref('')
+const connectionInterval = ref(null)
+
+const emit = defineEmits(['view-details', 'connection-updated'])
 
 const props = defineProps({
   connection: {
@@ -94,4 +184,102 @@ const handleImageError = (event) => {
   event.target.classList.add('hidden')
   event.target.nextElementSibling?.classList.remove('hidden')
 }
+
+// Abrir modal de conexão
+const openConnectModal = async () => {
+  showConnectModal.value = true
+  connectStep.value = 'initial'
+  errorMessage.value = ''
+  
+  try {
+    // Iniciar processo de conexão
+    const response = await connectionStore.connectInstance(props.connection.name)
+    
+    if (response && response[0] && response[0].success) {
+      const data = response[0].data
+      
+      if (data.base64) {
+        // Se retornou QR code, mostrar para o usuário escanear
+        qrCodeImage.value = `data:image/png;base64,${data.base64}`
+        connectStep.value = 'qrcode'
+      } else if (data.pairingCode) {
+        // Se retornou código de pareamento, mostrar para o usuário
+        pairingCode.value = data.pairingCode
+        connectStep.value = 'pairingCode'
+      } else {
+        // Se não retornou nem QR code nem código de pareamento, mostrar erro
+        connectStep.value = 'error'
+        errorMessage.value = 'Não foi possível obter o QR code ou código de pareamento'
+      }
+      
+      // Iniciar polling para verificar status da conexão
+      startConnectionPolling()
+    } else {
+      // Se houve algum erro
+      connectStep.value = 'error'
+      errorMessage.value = 'Erro desconhecido ao conectar'
+    }
+  } catch (error) {
+    console.error('Erro ao iniciar conexão:', error)
+    connectStep.value = 'error'
+    errorMessage.value = error.message || 'Erro desconhecido ao iniciar conexão'
+  }
+}
+
+// Iniciar polling para verificar status da conexão
+const startConnectionPolling = () => {
+  // Limpar intervalo anterior se existir
+  if (connectionInterval.value) {
+    clearInterval(connectionInterval.value)
+  }
+  
+  // Verificar status a cada 5 segundos
+  connectionInterval.value = setInterval(async () => {
+    try {
+      const status = await connectionStore.checkConnectionStatus(props.connection.id)
+      
+      if (status.connected) {
+        // Se conectado com sucesso
+        clearInterval(connectionInterval.value)
+        connectStep.value = 'success'
+        emit('connection-updated')
+      } else if (status.error) {
+        // Se ocorreu um erro
+        clearInterval(connectionInterval.value)
+        connectStep.value = 'error'
+        errorMessage.value = status.message || 'Erro ao estabelecer conexão'
+      }
+      // Se ainda estiver aguardando, continua no estado de QR code
+    } catch (error) {
+      console.error('Erro ao verificar status da conexão:', error)
+    }
+  }, 5000)
+}
+
+// Cancelar conexão
+const cancelConnection = async () => {
+  try {
+    // Limpar intervalo de polling
+    if (connectionInterval.value) {
+      clearInterval(connectionInterval.value)
+    }
+    
+    // Chamar API para cancelar conexão
+    await connectionStore.cancelConnection(props.connection.id)
+    
+    // Fechar modal
+    showConnectModal.value = false
+    toast.info('Conexão cancelada')
+  } catch (error) {
+    console.error('Erro ao cancelar conexão:', error)
+    toast.error('Erro ao cancelar conexão: ' + (error.message || 'Erro desconhecido'))
+  }
+}
+
+// Limpar intervalo quando o componente for desmontado
+onUnmounted(() => {
+  if (connectionInterval.value) {
+    clearInterval(connectionInterval.value)
+  }
+})
 </script>
