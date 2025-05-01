@@ -204,7 +204,7 @@ watch(
   }
 )
 
-// Adicione esta computed property no script
+// Adicione esta computed property no script 
 const getModalTitle = computed(() => {
   if (!currentTemplate.value) return 'Novo Template'
   if (currentTemplate.value.id) return 'Editar Template'
