@@ -67,49 +67,100 @@ export const useConnectionStore = defineStore('connection', {
     },
     
     async connectInstance(connectionName) {
+      let retries = 3;
+      let attempt = 0;
+      
+      while (attempt < retries) {
+        try {
+          console.log(`Tentativa ${attempt + 1} de conectar instancia:`, connectionName);
+          
+          const response = await fetch(`${webhooks.connections.connect}`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ name: connectionName })
+          });
+          
+          if (!response.ok) {
+            throw new Error(`Error al conectar instancia: ${response.status}`);
+          }        
+          const data = await response.json();
+          console.log('Respuesta recibida:', data);
+          return data;
+        } catch (error) {
+          attempt++;
+          console.error(`Error al conectar instancia (intento ${attempt}/${retries}):`, error);
+          
+          if (attempt >= retries) {
+            this.error = error.message;
+            throw error;
+          }
+          
+          // Esperar antes de reintentar (tiempo exponencial)
+          await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, attempt)));
+        }
+      }
+    },
+    
+    async checkConnectionStatus(connectionName) {
       try {
-        console.log('Conectando instância com nome:', connectionName);
+        console.log('Verificando status da conexão:', connectionName);
         
-        const response = await fetch(`${webhooks.connections.connect}`, {
+        const response = await fetch(`${webhooks.connections.state}`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify({ name: connectionName })  // Alterado para 'name' se o webhook esperar essa chave
-        })
+          body: JSON.stringify({ name: connectionName })
+        });
         
         if (!response.ok) {
-          throw new Error(`Erro ao conectar instância: ${response.status}`)
+          throw new Error(`Erro ao verificar status da conexão: ${response.status}`);
         }
         
-        return await response.json()
+        const data = await response.json();
+        console.log('Status da conexão recebido:', data);
+        
+        // Processar o formato de resposta esperado
+        if (Array.isArray(data) && data.length > 0 && data[0].success && Array.isArray(data[0].data)) {
+          const connectionData = data[0].data[0];
+          
+          return {
+            connected: connectionData.connectionStatus === 'open',
+            connecting: connectionData.connectionStatus === 'connecting',
+            status: connectionData.connectionStatus,
+            connectionData: connectionData
+          };
+        } else {
+          console.warn('Formato de resposta inválido ao verificar status da conexão');
+          return {
+            connected: false,
+            error: true,
+            message: 'Formato de resposta inválido'
+          };
+        }
       } catch (error) {
-        console.error('Erro ao conectar instância:', error)
-        this.error = error.message
-        throw error
+        console.error('Erro ao verificar status da conexão:', error);
+        this.error = error.message;
+        return {
+          connected: false,
+          error: true,
+          message: error.message || 'Erro desconhecido ao verificar status'
+        };
       }
     },
     
-    async checkConnectionStatus(connectionId) {
+    async cancelConnection(connectionName) {
       try {
-        const response = await fetch(`${webhooks.connections.list}/${connectionId}/status`)
+        console.log('Cancelando conexão:', connectionName);
         
-        if (!response.ok) {
-          throw new Error(`Erro ao verificar status da conexão: ${response.status}`)
-        }
-        
-        return await response.json()
-      } catch (error) {
-        console.error('Erro ao verificar status da conexão:', error)
-        this.error = error.message
-        throw error
-      }
-    },
-    
-    async cancelConnection(connectionId) {
-      try {
-        const response = await fetch(`${webhooks.connections.connect}/${connectionId}/cancel`, {
-          method: 'POST'
+        const response = await fetch(`${webhooks.connections.connect}/cancel`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ name: connectionName })
         })
         
         if (!response.ok) {

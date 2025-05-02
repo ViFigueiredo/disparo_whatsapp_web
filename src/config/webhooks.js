@@ -16,7 +16,9 @@ export const webhooks = {
   connections: {
     list: import.meta.env.VITE_WEBHOOK_CONNECTIONS_LIST,
     create: import.meta.env.VITE_WEBHOOK_CONNECTIONS_CREATE,
-    connect: import.meta.env.VITE_WEBHOOK_CONNECTIONS_CONNECT
+    connect: import.meta.env.VITE_WEBHOOK_CONNECTIONS_CONNECT,
+    state: import.meta.env.VITE_WEBHOOK_CONNECTIONS_STATE,
+    delete: import.meta.env.VITE_WEBHOOK_CONNECTIONS_REMOVE,
   },
   business: {
     templates: import.meta.env.VITE_WEBHOOK_BUSINESS_TEMPLATES || import.meta.env.VITE_WEBHOOK_TEMPLATE_CLOUD
