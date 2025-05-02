@@ -173,6 +173,58 @@ export const useConnectionStore = defineStore('connection', {
         this.error = error.message
         throw error
       }
+    },
+    
+    async removeConnection(connectionName) {
+      try {
+        console.log('Removendo conexão:', connectionName);
+        console.log('URL do webhook de remoção:', webhooks.connections.delete);
+        
+        // Verificar se o webhook está configurado
+        if (!webhooks.connections.delete) {
+          console.error('ERRO: URL do webhook de remoção não está configurada!');
+          throw new Error('URL do webhook de remoção não está configurada');
+        }
+        
+        // Obter o status atual da conexão antes de removê-la
+        let connectionStatus = 'unknown';
+        try {
+          const statusResponse = await this.checkConnectionStatus(connectionName);
+          connectionStatus = statusResponse.status || 'unknown';
+          console.log('Status da conexão a ser removida:', connectionStatus);
+        } catch (statusError) {
+          console.warn('Não foi possível obter o status da conexão antes de removê-la:', statusError);
+        }
+        
+        const payload = { 
+          name: connectionName,
+          status: connectionStatus 
+        };
+        console.log('Payload enviado para remoção:', payload);
+        
+        const response = await fetch(`${webhooks.connections.delete}`, {
+          method: 'DELETE', // Alterado de DELETE para POST para garantir compatibilidade
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(payload)
+        })
+        
+        console.log('Status da resposta:', response.status);
+        
+        if (!response.ok) {
+          throw new Error(`Erro ao remover conexão: ${response.status}`)
+        }
+        
+        // Atualizar a lista de conexões após a remoção
+        await this.fetchConnections()
+        
+        return await response.json()
+      } catch (error) {
+        console.error('Erro ao remover conexão:', error)
+        this.error = error.message
+        throw error
+      }
     }
   }
 })
