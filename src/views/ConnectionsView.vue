@@ -11,6 +11,16 @@
     <div class="flex justify-between items-center">
       <h2 class="text-2xl font-bold text-gray-900">Conexões de WhatsApp</h2>
       <div class="flex space-x-3">
+        <div class="relative">
+          <input v-model="searchQuery" type="text" placeholder="Buscar por nome..."
+            class="pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+          <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+        </div>
+        <select v-model="sortOrder"
+          class="flex justify-between py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+          <option value="asc">Nome (A-Z)</option>
+          <option value="desc">Nome (Z-A)</option>
+        </select>
         <base-button @click="openCreateConnectionModal">
           <i class="fas fa-plus mr-2"></i>
           Nova Conexão
@@ -23,13 +33,8 @@
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      <connection-card 
-        v-for="connection in connections" 
-        :key="connection.id" 
-        :connection="connection"
-        @view-details="showConnectionDetails"
-        @connection-updated="fetchConnections"
-      />
+      <connection-card v-for="connection in filteredConnections" :key="connection.id" :connection="connection"
+        @view-details="showConnectionDetails" @connection-updated="fetchConnections" />
     </div>
 
     <!-- Modal de Detalhes da Conexão -->
@@ -38,13 +43,8 @@
         <div class="space-y-4">
           <div class="flex items-center space-x-4">
             <div class="w-16 h-16 rounded-full overflow-hidden">
-              <img 
-                v-if="selectedConnection.profilePicUrl" 
-                :src="selectedConnection.profilePicUrl" 
-                alt="Foto de perfil"
-                class="w-full h-full object-cover"
-                @error="handleImageError"
-              />
+              <img v-if="selectedConnection.profilePicUrl" :src="selectedConnection.profilePicUrl" alt="Foto de perfil"
+                class="w-full h-full object-cover" @error="handleImageError" />
               <div v-else class="w-full h-full bg-gray-200 flex items-center justify-center">
                 <i class="fas fa-user text-gray-400 text-2xl"></i>
               </div>
@@ -53,12 +53,10 @@
               <h3 class="text-lg font-semibold">{{ selectedConnection.profileName || selectedConnection.name }}</h3>
               <p class="text-sm text-gray-500">{{ selectedConnection.ownerJid }}</p>
               <div class="flex items-center mt-1">
-                <span 
-                  :class="[
-                    'inline-flex px-2 py-1 text-xs font-medium rounded-full', 
-                    selectedConnection.connectionStatus === 'open' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                  ]"
-                >
+                <span :class="[
+                  'inline-flex px-2 py-1 text-xs font-medium rounded-full',
+                  selectedConnection.connectionStatus === 'open' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                ]">
                   {{ selectedConnection.connectionStatus === 'open' ? 'Conectado' : 'Desconectado' }}
                 </span>
               </div>
@@ -128,13 +126,9 @@
           <label class="block text-sm font-medium text-gray-700">
             Nome da Conexão
           </label>
-          <input
-            v-model="newConnection.name"
-            type="text"
-            required
+          <input v-model="newConnection.name" type="text" required
             class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-            placeholder="Digite o nome da conexão"
-          />
+            placeholder="Digite o nome da conexão" />
         </div>
 
         <!-- Número do WhatsApp -->
@@ -142,29 +136,20 @@
           <label class="block text-sm font-medium text-gray-700">
             Número do WhatsApp
           </label>
-          <input
-            v-model="newConnection.phoneNumber"
-            type="text"
-            required
+          <input v-model="newConnection.phoneNumber" type="text" required
             class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-            placeholder="Ex: 5511999999999 (com código do país)"
-          />
+            placeholder="Ex: 5511999999999 (com código do país)" />
         </div>
 
         <!-- Botões -->
         <div class="flex justify-end gap-3 mt-6">
-          <button
-            type="button"
-            @click="showCreateModal = false"
-            class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
-          >
+          <button type="button" @click="showCreateModal = false"
+            class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
             Cancelar
           </button>
-          <button
-            type="submit"
+          <button type="submit"
             class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
-            :disabled="isCreating"
-          >
+            :disabled="isCreating">
             <i v-if="isCreating" class="fas fa-spinner fa-spin mr-2"></i>
             {{ isCreating ? 'Criando...' : 'Criar Conexão' }}
           </button>
@@ -175,7 +160,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useToast } from 'vue-toastification'
 import BaseButton from '../components/common/BaseButton.vue'
 import BaseModal from '../components/common/BaseModal.vue'
@@ -188,6 +173,8 @@ const connections = ref([])
 const isLoading = ref(false)
 const showDetailsModal = ref(false)
 const selectedConnection = ref(null)
+const searchQuery = ref('')
+const sortOrder = ref('asc')
 
 // Estado para o modal de criação
 const showCreateModal = ref(false)
@@ -195,6 +182,32 @@ const isCreating = ref(false)
 const newConnection = ref({
   name: '',
   phoneNumber: ''
+})
+
+// Computed property para filtrar e ordenar conexões
+const filteredConnections = computed(() => {
+  let result = connections.value
+
+  // Aplicar filtro de busca
+  if (searchQuery.value) {
+    const query = searchQuery.value.toLowerCase()
+    result = result.filter(connection =>
+      connection.name.toLowerCase().includes(query) ||
+      connection.profileName?.toLowerCase().includes(query)
+    )
+  }
+
+  // Aplicar ordenação
+  return result.sort((a, b) => {
+    const nameA = (a.name || '').toLowerCase()
+    const nameB = (b.name || '').toLowerCase()
+
+    if (sortOrder.value === 'asc') {
+      return nameA.localeCompare(nameB)
+    } else {
+      return nameB.localeCompare(nameA)
+    }
+  })
 })
 
 // Formatar data para exibição
@@ -257,16 +270,16 @@ const openCreateConnectionModal = () => {
 const createConnection = async () => {
   try {
     isCreating.value = true
-    
+
     // Preparar dados para envio
     const connectionData = {
       name: newConnection.value.name,
       phoneNumber: newConnection.value.phoneNumber
     }
-    
+
     // Enviar para o webhook
     await connectionStore.createConnection(connectionData)
-    
+
     // Fechar modal e atualizar lista
     showCreateModal.value = false
     toast.success('Conexão criada com sucesso!')

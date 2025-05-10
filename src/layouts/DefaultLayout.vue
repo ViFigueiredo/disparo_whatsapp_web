@@ -1,81 +1,46 @@
 <template>
-  <div class="min-h-screen bg-gray-50">
-    <!-- Navigation -->
-    <nav class="flex w-full bg-white shadow-sm">
-      <div class="flex w-full px-4 sm:px-6 lg:px-8">
-        <div class="flex w-full h-16">
-          <div class="flex w-full justify-between">
+  <div class="min-h-screen bg-gray-100">
+    <!-- Barra de navegação -->
+    <nav class="bg-white shadow">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between h-16">
+          <div class="flex">
+            <!-- Logo -->
             <div class="flex-shrink-0 flex items-center">
-              <h1 class="text-xl font-bold text-gray-900">Figcodes</h1>
+              <h1 class="text-xl font-bold text-blue-600">WhatsApp Web</h1>
             </div>
-            <div class="hidden sm:flex sm:space-x-8">
-              <!-- <router-link to=""
-                class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
-                <i class="fas fa-robot mr-2"></i>
-                Agentes IA
-              </router-link> -->
 
-              <!-- <router-link to=""
-                class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
-                <i class="fas fa-bolt mr-2"></i>
-                Automações
-              </router-link> -->
+            <!-- Links de navegação -->
+            <div class="hidden sm:ml-6 sm:flex sm:space-x-8">
+              <router-link to="/" class="inline-flex items-center px-1 pt-1 border-b-2"
+                :class="[$route.path === '/' ? 'border-blue-500 text-gray-900' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700']">
+                Dashboard
+              </router-link>
+              <router-link to="/connections" class="inline-flex items-center px-1 pt-1 border-b-2"
+                :class="[$route.path === '/connections' ? 'border-blue-500 text-gray-900' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700']">
+                Conexões
+              </router-link>
+              <router-link to="/templates" class="inline-flex items-center px-1 pt-1 border-b-2"
+                :class="[$route.path === '/templates' ? 'border-blue-500 text-gray-900' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700']">
+                Templates
+              </router-link>
+              <router-link to="/leads" class="inline-flex items-center px-1 pt-1 border-b-2"
+                :class="[$route.path === '/leads' ? 'border-blue-500 text-gray-900' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700']">
+                Leads
+              </router-link>
+            </div>
+          </div>
 
-              <!-- <router-link to=""
-                class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
-                <i class="fas fa-chart-bar mr-2"></i>
-                Relatórios
-              </router-link> -->
-
-              <router-link to="/"
-              class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
-              <i class="fas fa-file-signature mr-2"></i>
-              Templates
-            </router-link>
-            
-            <router-link to="/leads"
-            class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
-            <i class="fas fa-users mr-2"></i>
-            Clientes
-          </router-link>
-
-          <router-link to="/connections"
-            class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
-            <i class="fab fa-whatsapp mr-2"></i>
-            Conexões
-          </router-link>
-        </div>  
-
-            <!-- Avatar Menu Dropdown -->
-            <!-- <div class="ml-4 flex items-center md:ml-6"> -->
-            <div class="flex items-center">
-              <div class="relative">
-                <a href="#" class="block px-4 py-2 text-lg text-gray-700 hover:bg-gray-100">
-                  <i class="fas fa-sign-out-alt"></i>
-                </a>
-                <!-- <button @click="toggleDropdown" class="flex items-center space-x-2 focus:outline-none">
-                  <div
-                    class="h-8 w-8 rounded-full bg-green-500 flex items-center justify-center text-white font-semibold">
-                    {{ userInitials }}
-                  </div> -->
-                  <!-- <span class="hidden md:block text-sm font-medium text-gray-700">{{ userName }}</span>
-                  <i :class="{ 'transform rotate-180': dropdownOpen }"
-                    class="fas fa-chevron-down text-gray-400 transition-transform duration-200"></i> -->
-                <!-- </button> -->
-
-                <!-- Dropdown Menu com v-click-outside -->
-                <!-- <div v-if="dropdownOpen" v-click-outside="closeDropdown"
-                  class="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg py-1 bg-white ring-1 ring-black ring-opacity-5 focus:outline-none z-50"> -->
-                  <!-- <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                    <i class="fas fa-user mr-2"></i> Meu Perfil
-                  </a>
-                  <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                    <i class="fas fa-cog mr-2"></i> Configurações
-                  </a> -->
-                  <!-- <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                    <i class="fas fa-sign-out-alt mr-2"></i> Sair
-                  </a> -->
-                <!-- </div> -->
+          <!-- Menu do usuário -->
+          <div class="flex items-center">
+            <div class="ml-3 relative">
+              <div class="flex items-center space-x-4">
+                <span class="text-sm text-gray-700">{{ authStore.user?.name }}</span>
+                <button @click="handleLogout"
+                  class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                  <i class="fas fa-sign-out-alt mr-2"></i>
+                  Sair
+                </button>
               </div>
             </div>
           </div>
@@ -83,51 +48,25 @@
       </div>
     </nav>
 
-    <!-- Main Content -->
-    <div class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+    <!-- Conteúdo principal -->
+    <main class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
       <router-view></router-view>
-    </div>
+    </main>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { useRouter } from 'vue-router'
+import { useToast } from 'vue-toastification'
+import { useAuthStore } from '../stores/auth'
 
-const dropdownOpen = ref(false);
-const userName = 'Admin User'; // Substitua pelo nome do usuário real
-const userEmail = 'admin@pyzapbot.com'; // Substitua pelo email do usuário real
+const router = useRouter()
+const toast = useToast()
+const authStore = useAuthStore()
 
-const userInitials = computed(() => {
-  return userName
-    .split(' ')
-    .slice(0, 2) // Pega apenas as duas primeiras palavras para as iniciais
-    .map(name => name[0])
-    .join('')
-    .toUpperCase();
-});
-
-// Diretiva personalizada para detectar clique fora
-const vClickOutside = {
-  mounted(el, binding) {  // Alterado de beforeMount para mounted
-    el._clickOutsideHandler = (event) => {  // Adicionado prefixo _ para propriedade privada
-      if (!(el === event.target || el.contains(event.target))) {
-        binding.value(event);
-      }
-    };
-    // Adicionado delay para evitar fechamento imediato
-    setTimeout(() => document.addEventListener('click', el._clickOutsideHandler), 0);
-  },
-  unmounted(el) {
-    document.removeEventListener('click', el._clickOutsideHandler);
-  }
-};
-
-const toggleDropdown = (event) => {
-  event.stopPropagation(); // Previne a propagação do evento
-  dropdownOpen.value = !dropdownOpen.value;
-};
-
-const closeDropdown = () => {
-  dropdownOpen.value = false;
-};
+const handleLogout = () => {
+  authStore.logout()
+  toast.success('Logout realizado com sucesso!')
+  router.push('/login')
+}
 </script>
