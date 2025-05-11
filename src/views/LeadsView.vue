@@ -408,7 +408,7 @@ const handleListDeleted = (listId) => {
 
 const fetchValidationLists = async () => {
   try {
-    const response = await fetch(webhooks.validation.list)    
+    const response = await fetch(webhooks.validation.list)
     
     // Verifica o content-type da resposta
     const contentType = response.headers.get('content-type')

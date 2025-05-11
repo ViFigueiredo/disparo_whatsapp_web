@@ -23,6 +23,12 @@ const router = createRouter({
           component: () => import('../views/HomeView.vue')
         },
         {
+          path: 'companies',
+          name: 'companies',
+          component: () => import('../views/CompaniesView.vue'),
+          meta: { requiresAdmin: true }
+        },
+        {
           path: 'connections',
           name: 'connections',
           component: () => import('../views/ConnectionsView.vue')
@@ -46,10 +52,13 @@ const router = createRouter({
 router.beforeEach((to, from, next) => {
   const authStore = useAuthStore()
   const requiresAuth = to.matched.some(record => record.meta.requiresAuth)
+  const requiresAdmin = to.matched.some(record => record.meta.requiresAdmin)
 
   if (requiresAuth && !authStore.isAuthenticated()) {
     next('/login')
   } else if (to.path === '/login' && authStore.isAuthenticated()) {
+    next('/')
+  } else if (requiresAdmin && !authStore.isAdmin) {
     next('/')
   } else {
     next()

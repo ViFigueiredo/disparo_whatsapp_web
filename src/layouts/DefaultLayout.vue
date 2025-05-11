@@ -16,6 +16,11 @@
                 :class="[$route.path === '/' ? 'border-blue-500 text-gray-900' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700']">
                 Dashboard
               </router-link>
+              <router-link v-if="authStore.isAdmin" to="/companies"
+                class="inline-flex items-center px-1 pt-1 border-b-2"
+                :class="[$route.path === '/companies' ? 'border-blue-500 text-gray-900' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700']">
+                Empresas
+              </router-link>
               <router-link to="/connections" class="inline-flex items-center px-1 pt-1 border-b-2"
                 :class="[$route.path === '/connections' ? 'border-blue-500 text-gray-900' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700']">
                 Conexões
@@ -35,7 +40,12 @@
           <div class="flex items-center">
             <div class="ml-3 relative">
               <div class="flex items-center space-x-4">
-                <span class="text-sm text-gray-700">{{ authStore.user?.name }}</span>
+                <div class="text-sm text-gray-700">
+                  <div>{{ authStore.user?.name }}</div>
+                  <div v-if="authStore.company" class="text-xs text-gray-500">
+                    {{ authStore.company.name }}
+                  </div>
+                </div>
                 <button @click="handleLogout"
                   class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
                   <i class="fas fa-sign-out-alt mr-2"></i>
