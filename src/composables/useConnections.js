@@ -8,7 +8,7 @@ export function useConnections() {
   const toast = useToast()
   const connectionStore = useConnectionStore()
   const companiesStore = useCompaniesStore()
-  
+
   const connections = ref([])
   const isLoading = ref(false)
   const companyConnections = ref([])
@@ -44,9 +44,9 @@ export function useConnections() {
       // 1. Criar conexão na Evolution API
       const evolutionResponse = await axios.post(import.meta.env.VITE_WEBHOOK_CONNECTIONS_CREATE, {
         name: connectionData.name,
-        phoneNumber: connectionData.phoneNumber
+        company_id: connectionData.company_id
       })
-      
+
       const connectionId = evolutionResponse.data.id || evolutionResponse.data.connection_id || evolutionResponse.data.connectionId
       if (!connectionId) throw new Error('ID da conexão não retornado pela Evolution API')
 
@@ -72,7 +72,7 @@ export function useConnections() {
         company_id: connectionData.company_id,
         connection_id: connectionData.id
       })
-      
+
       toast.success('Empresa da conexão atualizada com sucesso!')
       await fetchConnections()
       return true

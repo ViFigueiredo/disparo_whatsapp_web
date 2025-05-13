@@ -14,20 +14,6 @@
       />
     </div>
 
-    <!-- Número do WhatsApp -->
-    <div>
-      <label class="block text-sm font-medium text-gray-700">
-        Número do WhatsApp
-      </label>
-      <input 
-        v-model="formData.phoneNumber" 
-        type="text" 
-        required
-        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-        placeholder="Ex: 5511999999999 (com código do país)" 
-      />
-    </div>
-
     <!-- Empresa (apenas para admin) -->
     <div v-if="isAdmin">
       <label class="block text-sm font-medium text-gray-700">
@@ -96,7 +82,6 @@ const emit = defineEmits(['submit', 'cancel'])
 
 const formData = reactive({
   name: props.connection.name || '',
-  phoneNumber: props.connection.phoneNumber || '',
   company_id: props.connection.company_id || ''
 })
 

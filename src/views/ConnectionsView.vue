@@ -100,7 +100,6 @@ const isEditing = ref(false)
 const editConnection = ref({
   id: '',
   name: '',
-  phoneNumber: '',
   company_id: ''
 })
 
@@ -157,7 +156,6 @@ const openEditConnectionModal = async (connection) => {
   editConnection.value = {
     id: connection.id,
     name: connection.name,
-    phoneNumber: connection.phoneNumber,
     company_id: connection.company_id || ''
   }
   if (isAdmin.value && companiesStore.companies.length === 0) {
