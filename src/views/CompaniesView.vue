@@ -1,101 +1,58 @@
 <template>
     <div class="space-y-6">
-        <div class="flex justify-between items-center">
-            <h2 class="text-2xl font-bold text-gray-900">Empresas</h2>
-            <ListFilterSort v-model:search="searchQuery" v-model:sort="sortOrder"
-                search-placeholder="Buscar por nome...">
-                <base-button @click="openCreateCompanyModal">
-                    <i class="fas fa-plus mr-2"></i>
-                    Nova Empresa
-                </base-button>
-            </ListFilterSort>
-        </div>
+        <loading-overlay v-if="isLoading" message="Carregando empresas..." />
 
-        <!-- Lista de Empresas -->
-        <div class="bg-white shadow rounded-lg overflow-hidden">
-            <table class="min-w-full divide-y divide-gray-200">
-                <thead class="bg-gray-50">
-                    <tr>
-                        <th scope="col"
-                            class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Nome
-                        </th>
-                        <th scope="col"
-                            class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            CNPJ
-                        </th>
-                        <th scope="col"
-                            class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Email
-                        </th>
-                        <th scope="col"
-                            class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Status
-                        </th>
-                        <th scope="col"
-                            class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Ações
-                        </th>
-                    </tr>
-                </thead>
-                <tbody class="bg-white divide-y divide-gray-200">
-                    <tr v-for="company in filteredCompanies" :key="company.id">
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <div class="text-sm font-medium text-gray-900">{{ company.name }}</div>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <div class="text-sm text-gray-500">{{ company.formatted_cnpj }}</div>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <div class="text-sm text-gray-500">{{ company.email }}</div>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <span :class="[
-                                'px-2 inline-flex text-xs leading-5 font-semibold rounded-full',
-                                company.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                            ]">
-                                {{ company.status === 'active' ? 'Ativo' : 'Inativo' }}
-                            </span>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                            <button @click="editCompany(company)" class="text-blue-600 hover:text-blue-900 mr-4">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                            <button @click="deleteCompany(company)" class="text-red-600 hover:text-red-900">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
+        <companies-header
+            v-model:search="searchQuery"
+            v-model:sort="sortOrder"
+            @new-company="openCreateCompanyModal"
+        />
+
+        <company-table
+            :companies="filteredCompanies"
+            @edit="editCompany"
+            @delete="deleteCompany"
+        />
 
         <!-- Modal de Criação/Edição de Empresa -->
         <base-modal v-model="showCompanyModal" :title="isEditing ? 'Editar Empresa' : 'Nova Empresa'">
-            <company-form :company="companyForm" :is-editing="isEditing" @submit="handleFormSubmit"
-                @cancel="showCompanyModal = false" />
+            <company-form
+                :company="companyForm"
+                :is-editing="isEditing"
+                :is-submitting="isSubmitting"
+                @submit="handleFormSubmit"
+                @cancel="showCompanyModal = false"
+            />
         </base-modal>
     </div>
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
-import { useToast } from 'vue-toastification'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import BaseButton from '../components/common/BaseButton.vue'
-import BaseModal from '../components/common/BaseModal.vue'
-import CompanyForm from '../components/companies/CompanyForm.vue'
-import ListFilterSort from '../components/common/ListFilterSort.vue'
 import { useAuthStore } from '../stores/auth'
 import { useCompaniesStore } from '../stores/companies'
+import { useCompanies } from '../composables/useCompanies'
 
-const toast = useToast()
+// Components
+import BaseModal from '../components/common/BaseModal.vue'
+import CompanyForm from '../components/companies/CompanyForm.vue'
+import CompaniesHeader from '../components/companies/CompaniesHeader.vue'
+import CompanyTable from '../components/companies/CompanyTable.vue'
+import LoadingOverlay from '../components/common/LoadingOverlay.vue'
+
+// Router and Stores
 const router = useRouter()
 const authStore = useAuthStore()
 const companiesStore = useCompaniesStore()
+const { isLoading, createCompany, updateCompany, deleteCompany: removeCompany } = useCompanies()
 
+// State
 const showCompanyModal = ref(false)
 const isEditing = ref(false)
+const isSubmitting = ref(false)
+const searchQuery = ref('')
+const sortOrder = ref('asc')
 const companyForm = ref({
     name: '',
     cnpj: '',
@@ -104,11 +61,10 @@ const companyForm = ref({
     status: 'active'
 })
 
-const searchQuery = ref('')
-const sortOrder = ref('asc')
-
+// Computed
 const filteredCompanies = computed(() => {
     let result = companiesStore.formattedCompanies
+    
     // Filtro de busca
     if (searchQuery.value) {
         const query = searchQuery.value.toLowerCase()
@@ -117,6 +73,7 @@ const filteredCompanies = computed(() => {
             company.email.toLowerCase().includes(query)
         )
     }
+    
     // Ordenação
     return result.sort((a, b) => {
         const nameA = (a.name || '').toLowerCase()
@@ -129,12 +86,7 @@ const filteredCompanies = computed(() => {
     })
 })
 
-// Verificar se é admin
-if (!authStore.isAdmin) {
-    toast.error('Acesso não autorizado')
-    router.push('/')
-}
-
+// Methods
 const openCreateCompanyModal = () => {
     isEditing.value = false
     companyForm.value = {
@@ -158,26 +110,31 @@ const deleteCompany = async (company) => {
         return
     }
 
-    try {
-        await companiesStore.deleteCompany(company.id)
-        toast.success('Empresa excluída com sucesso!')
-    } catch (error) {
-        console.error('Erro ao excluir empresa:', error)
-        toast.error('Erro ao excluir empresa')
-    }
+    await removeCompany(company.id)
 }
 
 const handleFormSubmit = async () => {
-    await companiesStore.fetchCompanies()
-    showCompanyModal.value = false
+    isSubmitting.value = true
+    try {
+        if (isEditing.value) {
+            await updateCompany(companyForm.value)
+        } else {
+            await createCompany(companyForm.value)
+        }
+        showCompanyModal.value = false
+    } finally {
+        isSubmitting.value = false
+    }
 }
 
+// Lifecycle
 onMounted(async () => {
-    try {
-        await companiesStore.fetchCompanies()
-    } catch (error) {
-        console.error('Erro ao carregar empresas:', error)
-        toast.error('Erro ao carregar empresas')
+    // Verificar se é admin
+    if (!authStore.isAdmin) {
+        router.push('/')
+        return
     }
+    
+    await companiesStore.fetchCompanies()
 })
 </script>

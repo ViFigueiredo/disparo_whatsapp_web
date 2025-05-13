@@ -9,7 +9,23 @@
     </div>
   </div>
 
-  <form @submit.prevent="handleSubmit" class="space-y-4">
+  <form @submit.prevent="handleSubmit" class="space-y-6">
+    <!-- Campo de Empresa (apenas para admin) -->
+    <div v-if="isAdmin" class="space-y-2">
+      <label for="company" class="block text-sm font-medium text-gray-700">Empresa</label>
+      <select
+        id="company"
+        v-model="form.company_id"
+        class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
+        required
+      >
+        <option value="" disabled>Selecione uma empresa</option>
+        <option v-for="company in companies" :key="company.id" :value="company.id">
+          {{ company.name }}
+        </option>
+      </select>
+    </div>
+
     <!-- Nome do Template -->
     <div>
       <label class="block text-sm font-medium text-gray-700">
@@ -164,6 +180,18 @@ const props = defineProps({
   template: {
     type: Object,
     default: () => null
+  },
+  isSubmitting: {
+    type: Boolean,
+    default: false
+  },
+  isAdmin: {
+    type: Boolean,
+    default: false
+  },
+  companies: {
+    type: Array,
+    default: () => []
   }
 })
 
@@ -187,7 +215,15 @@ const form = ref({
     Resposta3: '',
     Resposta4: '',
     Resposta5: ''
-  }
+  },
+  company_id: props.template?.company_id || '',
+  template_name: props.template?.template_name || '',
+  template_message: props.template?.template_message || '',
+  template_connection: props.template?.template_connection || '',
+  template_list_id: props.template?.template_list_id || '',
+  template_list_name: props.template?.template_list_name || '',
+  custom_fields: props.template?.custom_fields || {},
+  status: props.template?.status || 'active'
 })
 
 // Computed property para verificar se é integração de negócio
@@ -357,7 +393,15 @@ onMounted(async () => {
           Resposta3: '',
           Resposta4: '',
           Resposta5: ''
-        }
+        },
+        company_id: props.template.company_id || '',
+        template_name: props.template.template_name || '',
+        template_message: props.template.template_message || '',
+        template_connection: props.template.template_connection || '',
+        template_list_id: props.template.template_list_id || '',
+        template_list_name: props.template.template_list_name || '',
+        custom_fields: props.template.custom_fields || {},
+        status: props.template.status || 'active'
       }
       
       // Se for integração de negócio, definimos o template de negócio

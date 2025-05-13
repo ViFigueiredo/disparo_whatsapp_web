@@ -6,86 +6,64 @@
 
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <!-- Card de Empresas (apenas para admin) -->
-            <div v-if="authStore.isAdmin" class="bg-white rounded-lg shadow p-6">
-                <div class="flex items-center justify-between">
-                    <h3 class="text-lg font-medium text-gray-900">Empresas</h3>
-                    <i class="fas fa-building text-yellow-500 text-2xl"></i>
-                </div>
-                <p class="mt-2 text-sm text-gray-500">
-                    Gerencie as empresas cadastradas no sistema
-                </p>
-                <router-link to="/companies"
-                    class="mt-4 inline-flex items-center text-sm font-medium text-blue-600 hover:text-blue-500">
-                    Ver empresas
-                    <i class="fas fa-arrow-right ml-2"></i>
-                </router-link>
-            </div>
+            <dashboard-card
+                v-if="authStore.isAdmin"
+                title="Empresas"
+                description="Gerencie as empresas cadastradas no sistema"
+                icon="building"
+                icon-color="text-yellow-500"
+                color="yellow"
+                route="/companies"
+                link-text="Ver empresas"
+            />
             <!-- Card de Conexões -->
-            <div class="bg-white rounded-lg shadow p-6">
-                <div class="flex items-center justify-between">
-                    <h3 class="text-lg font-medium text-gray-900">Conexões</h3>
-                    <i class="fas fa-plug text-blue-500 text-2xl"></i>
-                </div>
-                <p class="mt-2 text-sm text-gray-500">
-                    Gerencie suas conexões de WhatsApp
-                </p>
-                <router-link to="/connections"
-                    class="mt-4 inline-flex items-center text-sm font-medium text-blue-600 hover:text-blue-500">
-                    Ver conexões
-                    <i class="fas fa-arrow-right ml-2"></i>
-                </router-link>
-            </div>
+            <dashboard-card
+                title="Conexões"
+                description="Gerencie suas conexões de WhatsApp"
+                icon="plug"
+                icon-color="text-blue-500"
+                color="blue"
+                route="/connections"
+                link-text="Ver conexões"
+            />
             <!-- Card de Templates -->
-            <div class="bg-white rounded-lg shadow p-6">
-                <div class="flex items-center justify-between">
-                    <h3 class="text-lg font-medium text-gray-900">Templates</h3>
-                    <i class="fas fa-file-alt text-green-500 text-2xl"></i>
-                </div>
-                <p class="mt-2 text-sm text-gray-500">
-                    Gerencie seus templates de mensagens
-                </p>
-                <router-link to="/templates"
-                    class="mt-4 inline-flex items-center text-sm font-medium text-blue-600 hover:text-blue-500">
-                    Ver templates
-                    <i class="fas fa-arrow-right ml-2"></i>
-                </router-link>
-            </div>
+            <dashboard-card
+                title="Templates"
+                description="Gerencie seus templates de mensagens"
+                icon="file-alt"
+                icon-color="text-green-500"
+                color="green"
+                route="/templates"
+                link-text="Ver templates"
+            />
             <!-- Card de Leads -->
-            <div class="bg-white rounded-lg shadow p-6">
-                <div class="flex items-center justify-between">
-                    <h3 class="text-lg font-medium text-gray-900">Leads</h3>
-                    <i class="fas fa-users text-purple-500 text-2xl"></i>
-                </div>
-                <p class="mt-2 text-sm text-gray-500">
-                    Gerencie seus leads e contatos
-                </p>
-                <router-link to="/leads"
-                    class="mt-4 inline-flex items-center text-sm font-medium text-blue-600 hover:text-blue-500">
-                    Ver leads
-                    <i class="fas fa-arrow-right ml-2"></i>
-                </router-link>
-            </div>
+            <dashboard-card
+                title="Leads"
+                description="Gerencie seus leads e contatos"
+                icon="users"
+                icon-color="text-purple-500"
+                color="purple"
+                route="/leads"
+                link-text="Ver leads"
+            />
             <!-- Card de Usuários (apenas para admin) -->
-            <div v-if="authStore.isAdmin" class="bg-white rounded-lg shadow p-6">
-                <div class="flex items-center justify-between">
-                    <h3 class="text-lg font-medium text-gray-900">Usuários</h3>
-                    <i class="fas fa-user-cog text-pink-500 text-2xl"></i>
-                </div>
-                <p class="mt-2 text-sm text-gray-500">
-                    Gerencie os usuários do sistema
-                </p>
-                <router-link to="/users"
-                    class="mt-4 inline-flex items-center text-sm font-medium text-blue-600 hover:text-blue-500">
-                    Ver usuários
-                    <i class="fas fa-arrow-right ml-2"></i>
-                </router-link>
-            </div>
+            <dashboard-card
+                v-if="authStore.isAdmin"
+                title="Usuários"
+                description="Gerencie os usuários do sistema"
+                icon="user-cog"
+                icon-color="text-pink-500"
+                color="pink"
+                route="/users"
+                link-text="Ver usuários"
+            />
         </div>
     </div>
 </template>
 
 <script setup>
 import { useAuthStore } from '../stores/auth'
+import DashboardCard from '../components/home/DashboardCard.vue'
 
 const authStore = useAuthStore()
 </script>
