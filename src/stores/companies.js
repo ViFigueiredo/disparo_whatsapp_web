@@ -15,7 +15,9 @@ export const useCompaniesStore = defineStore('companies', {
     state: () => ({
         companies: [],
         loading: false,
-        error: null
+        error: null,
+        lastOperation: null,
+        currentRequestId: 0
     }),
 
     getters: {
@@ -32,13 +34,20 @@ export const useCompaniesStore = defineStore('companies', {
 
     actions: {
         async fetchCompanies() {
+            if (this.loading) return // Previne múltiplas chamadas simultâneas
+
+            const requestId = ++this.currentRequestId
             this.loading = true
             this.error = null
+
             try {
-                console.log('Fetching companies from:', WEBHOOK_COMPANIES_LIST)
                 const response = await axios.get(WEBHOOK_COMPANIES_LIST)
-                console.log('Raw response.data:', response.data)
-                // Aceita array direto ou dentro de uma propriedade
+
+                // Verifica se esta é a resposta da requisição mais recente
+                if (requestId !== this.currentRequestId) {
+                    return // Descarta resultados de requisições antigas
+                }
+
                 if (Array.isArray(response.data)) {
                     this.companies = response.data
                 } else if (Array.isArray(response.data.data)) {
@@ -48,83 +57,120 @@ export const useCompaniesStore = defineStore('companies', {
                 } else {
                     this.companies = []
                 }
-                console.log('Companies loaded:', this.companies)
             } catch (error) {
-                console.error('Erro ao carregar empresas:', error)
-                this.error = 'Erro ao carregar empresas'
-                this.companies = []
+                if (requestId === this.currentRequestId) {
+                    console.error('Erro ao carregar empresas:', error)
+                    this.error = 'Erro ao carregar empresas'
+                    this.companies = []
+                }
                 throw error
             } finally {
-                this.loading = false
+                if (requestId === this.currentRequestId) {
+                    this.loading = false
+                }
             }
         },
 
         async createCompany(company) {
+            if (this.loading) return // Previne múltiplas chamadas simultâneas
+
+            const requestId = ++this.currentRequestId
             this.loading = true
             this.error = null
+            this.lastOperation = 'create'
+
             try {
-                // Removendo formatação do CNPJ antes de enviar
                 const companyData = {
-                    ...company,
-                    cnpj: company.cnpj.replace(/[^\d]/g, '')
+                    name: company.name,
+                    cnpj: (company.cnpj || '').replace(/[^\d]/g, ''),
+                    email: company.email,
+                    phone: (company.phone || '').replace(/[^\d]/g, ''),
+                    status: company.status || 'active'
                 }
-                console.log('Creating company using webhook:', WEBHOOK_COMPANIES_CREATE)
-                console.log('Company data:', companyData)
+
                 const response = await axios.post(WEBHOOK_COMPANIES_CREATE, companyData)
-                if (response.data) {
-                    this.companies.push(response.data)
+
+                if (requestId === this.currentRequestId) {
+                    await this.fetchCompanies() // Atualiza a lista após criar
                 }
                 return response.data
             } catch (error) {
-                console.error('Erro ao criar empresa:', error)
-                this.error = 'Erro ao criar empresa'
+                if (requestId === this.currentRequestId) {
+                    console.error('Erro ao criar empresa:', error)
+                    this.error = 'Erro ao criar empresa'
+                }
                 throw error
             } finally {
-                this.loading = false
+                if (requestId === this.currentRequestId) {
+                    this.loading = false
+                    this.lastOperation = null
+                }
             }
         },
 
         async updateCompany(company) {
+            if (this.loading) return // Previne múltiplas chamadas simultâneas
+            if (!company.id) throw new Error('ID da empresa é obrigatório para atualização')
+
+            const requestId = ++this.currentRequestId
             this.loading = true
             this.error = null
+            this.lastOperation = 'update'
+
             try {
-                // Removendo formatação do CNPJ antes de enviar
                 const companyData = {
-                    ...company,
                     id: company.id,
-                    cnpj: company.cnpj.replace(/[^\d]/g, '')
+                    name: company.name,
+                    cnpj: (company.cnpj || '').replace(/[^\d]/g, ''),
+                    email: company.email,
+                    phone: (company.phone || '').replace(/[^\d]/g, ''),
+                    status: company.status || 'active'
                 }
-                console.log('Updating company using webhook:', WEBHOOK_COMPANIES_UPDATE)
+
                 const response = await axios.post(WEBHOOK_COMPANIES_UPDATE, companyData)
-                if (response.data) {
-                    const index = this.companies.findIndex(c => c.id === company.id)
-                    if (index !== -1) {
-                        this.companies[index] = response.data
-                    }
+
+                if (requestId === this.currentRequestId) {
+                    await this.fetchCompanies() // Atualiza a lista após atualizar
                 }
                 return response.data
             } catch (error) {
-                console.error('Erro ao atualizar empresa:', error)
-                this.error = 'Erro ao atualizar empresa'
+                if (requestId === this.currentRequestId) {
+                    console.error('Erro ao atualizar empresa:', error)
+                    this.error = 'Erro ao atualizar empresa'
+                }
                 throw error
             } finally {
-                this.loading = false
+                if (requestId === this.currentRequestId) {
+                    this.loading = false
+                    this.lastOperation = null
+                }
             }
         },
 
         async deleteCompany(companyId) {
+            if (this.loading) return // Previne múltiplas chamadas simultâneas
+
+            const requestId = ++this.currentRequestId
             this.loading = true
             this.error = null
+            this.lastOperation = 'delete'
+
             try {
-                console.log('Deleting company using webhook:', WEBHOOK_COMPANIES_DELETE)
                 await axios.post(WEBHOOK_COMPANIES_DELETE, { id: companyId })
-                this.companies = this.companies.filter(c => c.id !== companyId)
+                if (requestId === this.currentRequestId) {
+                    await this.fetchCompanies() // Atualiza a lista após deletar
+                }
             } catch (error) {
-                console.error('Erro ao excluir empresa:', error)
-                this.error = 'Erro ao excluir empresa'
+                if (requestId === this.currentRequestId) {
+                    console.error('Erro ao excluir empresa:', error)
+                    this.error = 'Erro ao excluir empresa'
+                }
                 throw error
             } finally {
-                this.loading = false
+                if (requestId === this.currentRequestId) {
+                    this.loading = false
+                    this.lastOperation = null
+                }
             }
         }
     }

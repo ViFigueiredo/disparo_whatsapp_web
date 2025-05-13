@@ -2,8 +2,7 @@
   <div class="flex justify-between items-center">
     <h2 class="text-2xl font-bold text-gray-900">Templates de Mensagem</h2>
     <base-button @click="$emit('new-template')">
-      <i class="fas fa-plus mr-2"></i>
-      Novo Template
+      <i class="fas fa-plus"></i>
     </base-button>
   </div>
 </template>

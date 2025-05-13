@@ -18,12 +18,10 @@
         <option value="disconnected">Desconectado</option>
       </select>
       <base-button @click="$emit('new-connection')">
-        <i class="fas fa-plus mr-2"></i>
-        Nova Conexão
+        <i class="fas fa-plus"></i>
       </base-button>
       <base-button @click="$emit('refresh')">
-        <i class="fas fa-sync-alt mr-2"></i>
-        Atualizar Conexões
+        <i class="fas fa-sync-alt"></i>
       </base-button>
     </ListFilterSort>
   </div>

@@ -3,8 +3,7 @@
         <div class="flex justify-between items-center">
             <h2 class="text-2xl font-bold text-gray-900">Usuários</h2>
             <base-button @click="openCreateUserModal">
-                <i class="fas fa-plus mr-2"></i>
-                Novo Usuário
+                <i class="fas fa-plus"></i>
             </base-button>
         </div>
 
@@ -178,25 +177,37 @@ const deleteUser = async (user) => {
     try {
         await axios.post(import.meta.env.VITE_WEBHOOK_USERS_DELETE, { id: user.id })
         toast.success('Usuário excluído com sucesso!')
-        fetchUsers()
+        await fetchUsers()
     } catch (error) {
+        console.error('Erro ao excluir usuário:', error)
         toast.error('Erro ao excluir usuário')
     }
 }
 
 const handleSubmit = async () => {
+    isSubmitting.value = true
     try {
-        isSubmitting.value = true
         if (isEditing.value) {
-            await axios.post(import.meta.env.VITE_WEBHOOK_USERS_UPDATE, userForm.value)
+            const userData = {
+                id: userForm.value.id,
+                name: userForm.value.name,
+                email: userForm.value.email,
+                company_id: userForm.value.company_id,
+                role: userForm.value.role,
+                status: userForm.value.status
+            }
+            await axios.post(import.meta.env.VITE_WEBHOOK_USERS_UPDATE, userData)
             toast.success('Usuário atualizado com sucesso!')
+            showUserModal.value = false
+            await fetchUsers()
         } else {
             await axios.post(import.meta.env.VITE_WEBHOOK_USERS_CREATE, userForm.value)
             toast.success('Usuário criado com sucesso!')
+            showUserModal.value = false
+            await fetchUsers()
         }
-        showUserModal.value = false
-        fetchUsers()
     } catch (error) {
+        console.error('Erro ao salvar usuário:', error)
         toast.error('Erro ao salvar usuário')
     } finally {
         isSubmitting.value = false

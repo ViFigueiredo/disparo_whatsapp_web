@@ -9,8 +9,7 @@
       search-placeholder="Buscar por nome..."
     >
       <base-button @click="$emit('new-company')">
-        <i class="fas fa-plus mr-2"></i>
-        Nova Empresa
+        <i class="fas fa-plus"></i>
       </base-button>
     </ListFilterSort>
   </div>

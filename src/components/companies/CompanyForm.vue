@@ -4,7 +4,7 @@
             <label class="block text-sm font-medium text-gray-700">
                 Nome da Empresa
             </label>
-            <input v-model="form.name" type="text" required
+            <input :value="company.name" @input="updateField('name', $event.target.value)" type="text" required
                 class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" />
         </div>
 
@@ -12,17 +12,16 @@
             <label class="block text-sm font-medium text-gray-700">
                 CNPJ
             </label>
-            <input v-model="form.cnpj" type="text" required
+            <input :value="company.cnpj" @input="formatCNPJ" type="text" required
                 class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                placeholder="00.000.000/0000-00"
-                @input="formatCNPJ" />
+                placeholder="00.000.000/0000-00" />
         </div>
 
         <div>
             <label class="block text-sm font-medium text-gray-700">
                 Email
             </label>
-            <input v-model="form.email" type="email" required
+            <input :value="company.email" @input="updateField('email', $event.target.value)" type="email" required
                 class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" />
         </div>
 
@@ -30,17 +29,16 @@
             <label class="block text-sm font-medium text-gray-700">
                 Telefone
             </label>
-            <input v-model="form.phone" type="text"
+            <input :value="company.phone" @input="formatPhone" type="text"
                 class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                placeholder="(00) 00000-0000"
-                @input="formatPhone" />
+                placeholder="(00) 00000-0000" />
         </div>
 
         <div>
             <label class="block text-sm font-medium text-gray-700">
                 Status
             </label>
-            <select v-model="form.status"
+            <select :value="company.status" @change="updateField('status', $event.target.value)"
                 class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
                 <option value="active">Ativo</option>
                 <option value="inactive">Inativo</option>
@@ -63,20 +61,13 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
 import { useToast } from 'vue-toastification'
 import { useCompaniesStore } from '../../stores/companies'
 
 const props = defineProps({
     company: {
         type: Object,
-        default: () => ({
-            name: '',
-            cnpj: '',
-            email: '',
-            phone: '',
-            status: 'active'
-        })
+        required: true
     },
     isEditing: {
         type: Boolean,
@@ -84,21 +75,13 @@ const props = defineProps({
     }
 })
 
-const emit = defineEmits(['submit', 'cancel'])
-
+const emit = defineEmits(['submit', 'cancel', 'update:company'])
 const toast = useToast()
 const companiesStore = useCompaniesStore()
-const form = ref({ ...props.company })
 
-watch(() => props.company, (newCompany) => {
-    // Formata o CNPJ ao receber dados para edição
-    let cnpj = newCompany.cnpj || ''
-    cnpj = cnpj.replace(/\D/g, '')
-    if (cnpj.length === 14) {
-        cnpj = cnpj.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5')
-    }
-    form.value = { ...newCompany, cnpj }
-}, { deep: true })
+const updateField = (field, value) => {
+    emit('update:company', { ...props.company, [field]: value })
+}
 
 const formatCNPJ = (event) => {
     let value = event.target.value.replace(/\D/g, '')
@@ -108,7 +91,7 @@ const formatCNPJ = (event) => {
         value = value.replace(/\.(\d{3})(\d)/, '.$1/$2')
         value = value.replace(/(\d{4})(\d)/, '$1-$2')
     }
-    form.value.cnpj = value
+    updateField('cnpj', value)
 }
 
 const formatPhone = (event) => {
@@ -117,20 +100,13 @@ const formatPhone = (event) => {
         value = value.replace(/^(\d{2})(\d)/g, '($1) $2')
         value = value.replace(/(\d)(\d{4})$/, '$1-$2')
     }
-    form.value.phone = value
+    updateField('phone', value)
 }
 
 const handleSubmit = async () => {
     try {
-        let result
-        if (props.isEditing) {
-            result = await companiesStore.updateCompany(form.value)
-        } else {
-            result = await companiesStore.createCompany(form.value)
-        }
-        
-        emit('submit', result)
-        toast.success(props.isEditing ? 'Empresa atualizada com sucesso!' : 'Empresa criada com sucesso!')
+        // Use the props.company directly since it's always up-to-date now
+        emit('submit', props.company)
     } catch (error) {
         console.error('Erro ao salvar empresa:', error)
         toast.error('Erro ao salvar empresa')

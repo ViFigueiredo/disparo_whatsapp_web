@@ -1,6 +1,6 @@
 <template>
     <div class="space-y-6">
-        <loading-overlay v-if="isLoading" message="Carregando empresas..." />
+        <loading-overlay v-if="companiesStore.loading" message="Carregando empresas..." />
 
         <companies-header
             v-model:search="searchQuery"
@@ -20,6 +20,7 @@
                 :company="companyForm"
                 :is-editing="isEditing"
                 :is-submitting="isSubmitting"
+                @update:company="updateCompanyForm"
                 @submit="handleFormSubmit"
                 @cancel="showCompanyModal = false"
             />
@@ -32,7 +33,6 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { useCompaniesStore } from '../stores/companies'
-import { useCompanies } from '../composables/useCompanies'
 
 // Components
 import BaseModal from '../components/common/BaseModal.vue'
@@ -45,7 +45,6 @@ import LoadingOverlay from '../components/common/LoadingOverlay.vue'
 const router = useRouter()
 const authStore = useAuthStore()
 const companiesStore = useCompaniesStore()
-const { isLoading, createCompany, updateCompany, deleteCompany: removeCompany } = useCompanies()
 
 // State
 const showCompanyModal = ref(false)
@@ -54,6 +53,7 @@ const isSubmitting = ref(false)
 const searchQuery = ref('')
 const sortOrder = ref('asc')
 const companyForm = ref({
+    id: undefined,
     name: '',
     cnpj: '',
     email: '',
@@ -87,9 +87,14 @@ const filteredCompanies = computed(() => {
 })
 
 // Methods
+const updateCompanyForm = (newData) => {
+    companyForm.value = { ...newData }
+}
+
 const openCreateCompanyModal = () => {
     isEditing.value = false
     companyForm.value = {
+        id: undefined,
         name: '',
         cnpj: '',
         email: '',
@@ -110,18 +115,25 @@ const deleteCompany = async (company) => {
         return
     }
 
-    await removeCompany(company.id)
+    try {
+        await companiesStore.deleteCompany(company.id)
+        // Atualiza a lista de empresas após o sucesso da deleção
+        await companiesStore.fetchCompanies()
+    } catch (error) {
+        console.error('Erro ao excluir empresa:', error)
+    }
 }
 
-const handleFormSubmit = async () => {
+const handleFormSubmit = async (formData) => {
     isSubmitting.value = true
     try {
         if (isEditing.value) {
-            await updateCompany(companyForm.value)
+            await companiesStore.updateCompany(formData)
         } else {
-            await createCompany(companyForm.value)
+            await companiesStore.createCompany(formData)
         }
         showCompanyModal.value = false
+        await companiesStore.fetchCompanies()
     } finally {
         isSubmitting.value = false
     }
