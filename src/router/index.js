@@ -29,6 +29,12 @@ const router = createRouter({
           meta: { requiresAdmin: true }
         },
         {
+          path: 'users',
+          name: 'users',
+          component: () => import('../views/UsersView.vue'),
+          meta: { requiresAdmin: true }
+        },
+        {
           path: 'connections',
           name: 'connections',
           component: () => import('../views/ConnectionsView.vue')

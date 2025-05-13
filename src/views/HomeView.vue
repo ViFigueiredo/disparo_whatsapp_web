@@ -5,6 +5,21 @@
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- Card de Empresas (apenas para admin) -->
+            <div v-if="authStore.isAdmin" class="bg-white rounded-lg shadow p-6">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-lg font-medium text-gray-900">Empresas</h3>
+                    <i class="fas fa-building text-yellow-500 text-2xl"></i>
+                </div>
+                <p class="mt-2 text-sm text-gray-500">
+                    Gerencie as empresas cadastradas no sistema
+                </p>
+                <router-link to="/companies"
+                    class="mt-4 inline-flex items-center text-sm font-medium text-blue-600 hover:text-blue-500">
+                    Ver empresas
+                    <i class="fas fa-arrow-right ml-2"></i>
+                </router-link>
+            </div>
             <!-- Card de Conexões -->
             <div class="bg-white rounded-lg shadow p-6">
                 <div class="flex items-center justify-between">
@@ -20,7 +35,6 @@
                     <i class="fas fa-arrow-right ml-2"></i>
                 </router-link>
             </div>
-
             <!-- Card de Templates -->
             <div class="bg-white rounded-lg shadow p-6">
                 <div class="flex items-center justify-between">
@@ -36,7 +50,6 @@
                     <i class="fas fa-arrow-right ml-2"></i>
                 </router-link>
             </div>
-
             <!-- Card de Leads -->
             <div class="bg-white rounded-lg shadow p-6">
                 <div class="flex items-center justify-between">
@@ -49,6 +62,21 @@
                 <router-link to="/leads"
                     class="mt-4 inline-flex items-center text-sm font-medium text-blue-600 hover:text-blue-500">
                     Ver leads
+                    <i class="fas fa-arrow-right ml-2"></i>
+                </router-link>
+            </div>
+            <!-- Card de Usuários (apenas para admin) -->
+            <div v-if="authStore.isAdmin" class="bg-white rounded-lg shadow p-6">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-lg font-medium text-gray-900">Usuários</h3>
+                    <i class="fas fa-user-cog text-pink-500 text-2xl"></i>
+                </div>
+                <p class="mt-2 text-sm text-gray-500">
+                    Gerencie os usuários do sistema
+                </p>
+                <router-link to="/users"
+                    class="mt-4 inline-flex items-center text-sm font-medium text-blue-600 hover:text-blue-500">
+                    Ver usuários
                     <i class="fas fa-arrow-right ml-2"></i>
                 </router-link>
             </div>

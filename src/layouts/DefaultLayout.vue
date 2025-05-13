@@ -21,6 +21,10 @@
                 :class="[$route.path === '/companies' ? 'border-blue-500 text-gray-900' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700']">
                 Empresas
               </router-link>
+              <router-link v-if="authStore.isAdmin" to="/users" class="inline-flex items-center px-1 pt-1 border-b-2"
+                :class="[$route.path === '/users' ? 'border-blue-500 text-gray-900' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700']">
+                Usuários
+              </router-link>
               <router-link to="/connections" class="inline-flex items-center px-1 pt-1 border-b-2"
                 :class="[$route.path === '/connections' ? 'border-blue-500 text-gray-900' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700']">
                 Conexões
