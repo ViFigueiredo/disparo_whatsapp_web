@@ -2,10 +2,13 @@
     <div class="space-y-6">
         <div class="flex justify-between items-center">
             <h2 class="text-2xl font-bold text-gray-900">Empresas</h2>
-            <base-button @click="openCreateCompanyModal">
-                <i class="fas fa-plus mr-2"></i>
-                Nova Empresa
-            </base-button>
+            <ListFilterSort v-model:search="searchQuery" v-model:sort="sortOrder"
+                search-placeholder="Buscar por nome...">
+                <base-button @click="openCreateCompanyModal">
+                    <i class="fas fa-plus mr-2"></i>
+                    Nova Empresa
+                </base-button>
+            </ListFilterSort>
         </div>
 
         <!-- Lista de Empresas -->
@@ -36,12 +39,12 @@
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
-                    <tr v-for="company in companies" :key="company.id">
+                    <tr v-for="company in filteredCompanies" :key="company.id">
                         <td class="px-6 py-4 whitespace-nowrap">
                             <div class="text-sm font-medium text-gray-900">{{ company.name }}</div>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
-                            <div class="text-sm text-gray-500">{{ formatCNPJ(company.cnpj) }}</div>
+                            <div class="text-sm text-gray-500">{{ company.formatted_cnpj }}</div>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
                             <div class="text-sm text-gray-500">{{ company.email }}</div>
@@ -69,83 +72,30 @@
 
         <!-- Modal de Criação/Edição de Empresa -->
         <base-modal v-model="showCompanyModal" :title="isEditing ? 'Editar Empresa' : 'Nova Empresa'">
-            <form @submit.prevent="handleSubmit" class="space-y-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700">
-                        Nome da Empresa
-                    </label>
-                    <input v-model="companyForm.name" type="text" required
-                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" />
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-gray-700">
-                        CNPJ
-                    </label>
-                    <input v-model="companyForm.cnpj" type="text" required
-                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                        placeholder="00.000.000/0000-00" />
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-gray-700">
-                        Email
-                    </label>
-                    <input v-model="companyForm.email" type="email" required
-                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" />
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-gray-700">
-                        Telefone
-                    </label>
-                    <input v-model="companyForm.phone" type="text"
-                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                        placeholder="(00) 00000-0000" />
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-gray-700">
-                        Status
-                    </label>
-                    <select v-model="companyForm.status"
-                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                        <option value="active">Ativo</option>
-                        <option value="inactive">Inativo</option>
-                    </select>
-                </div>
-
-                <div class="flex justify-end gap-3 mt-6">
-                    <button type="button" @click="showCompanyModal = false"
-                        class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
-                        Cancelar
-                    </button>
-                    <button type="submit"
-                        class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
-                        :disabled="isSubmitting">
-                        <i v-if="isSubmitting" class="fas fa-spinner fa-spin mr-2"></i>
-                        {{ isSubmitting ? 'Salvando...' : (isEditing ? 'Salvar' : 'Criar') }}
-                    </button>
-                </div>
-            </form>
+            <company-form :company="companyForm" :is-editing="isEditing" @submit="handleFormSubmit"
+                @cancel="showCompanyModal = false" />
         </base-modal>
     </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useToast } from 'vue-toastification'
+import { useRouter } from 'vue-router'
 import BaseButton from '../components/common/BaseButton.vue'
 import BaseModal from '../components/common/BaseModal.vue'
+import CompanyForm from '../components/companies/CompanyForm.vue'
+import ListFilterSort from '../components/common/ListFilterSort.vue'
 import { useAuthStore } from '../stores/auth'
+import { useCompaniesStore } from '../stores/companies'
 
 const toast = useToast()
+const router = useRouter()
 const authStore = useAuthStore()
+const companiesStore = useCompaniesStore()
 
-const companies = ref([])
 const showCompanyModal = ref(false)
 const isEditing = ref(false)
-const isSubmitting = ref(false)
 const companyForm = ref({
     name: '',
     cnpj: '',
@@ -154,15 +104,35 @@ const companyForm = ref({
     status: 'active'
 })
 
+const searchQuery = ref('')
+const sortOrder = ref('asc')
+
+const filteredCompanies = computed(() => {
+    let result = companiesStore.formattedCompanies
+    // Filtro de busca
+    if (searchQuery.value) {
+        const query = searchQuery.value.toLowerCase()
+        result = result.filter(company =>
+            company.name.toLowerCase().includes(query) ||
+            company.email.toLowerCase().includes(query)
+        )
+    }
+    // Ordenação
+    return result.sort((a, b) => {
+        const nameA = (a.name || '').toLowerCase()
+        const nameB = (b.name || '').toLowerCase()
+        if (sortOrder.value === 'asc') {
+            return nameA.localeCompare(nameB)
+        } else {
+            return nameB.localeCompare(nameA)
+        }
+    })
+})
+
 // Verificar se é admin
 if (!authStore.isAdmin) {
     toast.error('Acesso não autorizado')
     router.push('/')
-}
-
-const formatCNPJ = (cnpj) => {
-    if (!cnpj) return ''
-    return cnpj.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5')
 }
 
 const openCreateCompanyModal = () => {
@@ -189,9 +159,7 @@ const deleteCompany = async (company) => {
     }
 
     try {
-        // Aqui você fará a chamada para sua API
-        await new Promise(resolve => setTimeout(resolve, 1000))
-        companies.value = companies.value.filter(c => c.id !== company.id)
+        await companiesStore.deleteCompany(company.id)
         toast.success('Empresa excluída com sucesso!')
     } catch (error) {
         console.error('Erro ao excluir empresa:', error)
@@ -199,53 +167,14 @@ const deleteCompany = async (company) => {
     }
 }
 
-const handleSubmit = async () => {
-    try {
-        isSubmitting.value = true
-
-        // Aqui você fará a chamada para sua API
-        await new Promise(resolve => setTimeout(resolve, 1000))
-
-        if (isEditing.value) {
-            // Atualizar empresa existente
-            const index = companies.value.findIndex(c => c.id === companyForm.value.id)
-            if (index !== -1) {
-                companies.value[index] = { ...companyForm.value }
-            }
-            toast.success('Empresa atualizada com sucesso!')
-        } else {
-            // Criar nova empresa
-            const newCompany = {
-                id: companies.value.length + 1,
-                ...companyForm.value
-            }
-            companies.value.push(newCompany)
-            toast.success('Empresa criada com sucesso!')
-        }
-
-        showCompanyModal.value = false
-    } catch (error) {
-        console.error('Erro ao salvar empresa:', error)
-        toast.error('Erro ao salvar empresa')
-    } finally {
-        isSubmitting.value = false
-    }
+const handleFormSubmit = async () => {
+    await companiesStore.fetchCompanies()
+    showCompanyModal.value = false
 }
 
 onMounted(async () => {
     try {
-        // Aqui você fará a chamada para sua API
-        // Por enquanto, vamos usar dados de exemplo
-        companies.value = [
-            {
-                id: 1,
-                name: 'Empresa Exemplo',
-                cnpj: '12345678901234',
-                email: 'empresa@exemplo.com',
-                phone: '11999999999',
-                status: 'active'
-            }
-        ]
+        await companiesStore.fetchCompanies()
     } catch (error) {
         console.error('Erro ao carregar empresas:', error)
         toast.error('Erro ao carregar empresas')

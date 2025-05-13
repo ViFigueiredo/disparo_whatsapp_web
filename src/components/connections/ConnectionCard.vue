@@ -1,5 +1,6 @@
 <template>
-    <div class="flex flex-col justify-between bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300">
+    <div
+        class="flex flex-col justify-between bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300">
         <div class="p-4">
             <div class="flex items-center space-x-3 mb-3">
                 <div class="w-12 h-12 rounded-full overflow-hidden bg-gray-100 flex-shrink-0">
@@ -59,6 +60,11 @@
                 </span>
 
                 <div class="flex items-center space-x-2">
+                    <button v-if="isAdmin" @click="$emit('edit', connection)"
+                        class="p-2 text-yellow-600 hover:text-yellow-800 text-sm font-medium rounded-md transition-colors duration-200 flex items-center justify-center"
+                        title="Editar">
+                        <i class="fas fa-edit"></i>
+                    </button>
                     <button @click="confirmRemoveConnection"
                         class="p-2 text-red-600 hover:text-red-800 text-sm font-medium rounded-md transition-colors duration-200 flex items-center justify-center">
                         <i class="fas fa-trash-alt"></i>
@@ -142,22 +148,18 @@
                     <i class="fas fa-exclamation-triangle text-5xl text-yellow-500"></i>
                 </div>
                 <p class="text-lg font-medium">Tem certeza que deseja remover esta conexão?</p>
-                <p class="mt-2 text-gray-600">Esta ação não pode ser desfeita e todos os dados associados a esta conexão serão perdidos.</p>
+                <p class="mt-2 text-gray-600">Esta ação não pode ser desfeita e todos os dados associados a esta conexão
+                    serão perdidos.</p>
                 <p class="mt-2 font-semibold">{{ connection.name }}</p>
             </div>
-            
+
             <div class="flex justify-end mt-6">
-                <button 
-                    @click="showRemoveModal = false"
-                    class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 mr-2"
-                >
+                <button @click="showRemoveModal = false"
+                    class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 mr-2">
                     Cancelar
                 </button>
-                <button 
-                    @click="removeConnection"
-                    class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
-                    :disabled="isRemoving"
-                >
+                <button @click="removeConnection" class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+                    :disabled="isRemoving">
                     <i v-if="isRemoving" class="fas fa-spinner fa-spin mr-2"></i>
                     {{ isRemoving ? 'Removendo...' : 'Remover' }}
                 </button>
@@ -185,12 +187,16 @@ const connectionInterval = ref(null)
 const showRemoveModal = ref(false)
 const isRemoving = ref(false)
 
-const emit = defineEmits(['view-details', 'connection-updated'])
+const emit = defineEmits(['view-details', 'connection-updated', 'edit'])
 
 const props = defineProps({
     connection: {
         type: Object,
         required: true
+    },
+    isAdmin: {
+        type: Boolean,
+        default: false
     }
 })
 
@@ -377,9 +383,9 @@ const confirmRemoveConnection = () => {
 const removeConnection = async () => {
     try {
         isRemoving.value = true
-        
+
         console.log('Iniciando remoção da conexão:', props.connection.name);
-        
+
         // Verificar se o nome da conexão existe
         if (!props.connection.name) {
             console.error('ERRO: Nome da conexão não encontrado!');

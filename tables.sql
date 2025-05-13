@@ -65,19 +65,13 @@ CREATE TABLE templates (
 );
 
 -- Tabela para armazenar as conexões de WhatsApp
-CREATE TABLE connections (
+CREATE TABLE company_connections (
     id SERIAL PRIMARY KEY,
     company_id INTEGER REFERENCES companies(id) ON DELETE CASCADE,
-    name VARCHAR(255) NOT NULL,
-    phone_number VARCHAR(20) NOT NULL,
-    status VARCHAR(50) DEFAULT 'disconnected',
-    profile_name VARCHAR(255),
-    profile_pic_url TEXT,
-    owner_jid VARCHAR(100),
-    integration VARCHAR(50),
-    client_name VARCHAR(255),
+    connection_id VARCHAR(100) NOT NULL, -- ID retornado pela Evolution API
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(company_id, connection_id)
 );
 
 -- Índices para melhorar a performance
@@ -86,7 +80,7 @@ CREATE INDEX idx_users_email ON users(email);
 CREATE INDEX idx_users_role ON users(role);
 CREATE INDEX idx_validation_lists_company_id ON validation_lists(company_id);
 CREATE INDEX idx_templates_company_id ON templates(company_id);
-CREATE INDEX idx_connections_company_id ON connections(company_id);
+CREATE INDEX idx_company_connections_company_id ON company_connections(company_id);
 CREATE INDEX idx_validation_leads_list_id ON validation_leads(list_id);
 CREATE INDEX idx_validation_leads_numero ON validation_leads(numero);
 CREATE INDEX idx_validation_leads_exists ON validation_leads(exists);
@@ -129,7 +123,7 @@ CREATE TRIGGER update_templates_updated_at
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
 
-CREATE TRIGGER update_connections_updated_at
-    BEFORE UPDATE ON connections
+CREATE TRIGGER update_company_connections_updated_at
+    BEFORE UPDATE ON company_connections
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();

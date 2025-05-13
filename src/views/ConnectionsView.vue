@@ -10,16 +10,12 @@
 
     <div class="flex justify-between items-center">
       <h2 class="text-2xl font-bold text-gray-900">Conexões de WhatsApp</h2>
-      <div class="flex space-x-3">
-        <div class="relative">
-          <input v-model="searchQuery" type="text" placeholder="Buscar por nome..."
-            class="pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
-          <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
-        </div>
-        <select v-model="sortOrder"
-          class="flex justify-between py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-          <option value="asc">Nome (A-Z)</option>
-          <option value="desc">Nome (Z-A)</option>
+      <ListFilterSort v-model:search="searchQuery" v-model:sort="sortOrder" search-placeholder="Buscar por nome...">
+        <select v-model="statusFilter"
+          class="py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ml-2">
+          <option value="">Todas</option>
+          <option value="open">Conectado</option>
+          <option value="disconnected">Desconectado</option>
         </select>
         <base-button @click="openCreateConnectionModal">
           <i class="fas fa-plus mr-2"></i>
@@ -29,12 +25,14 @@
           <i class="fas fa-sync-alt mr-2"></i>
           Atualizar Conexões
         </base-button>
-      </div>
+      </ListFilterSort>
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      <connection-card v-for="connection in filteredConnections" :key="connection.id" :connection="connection"
-        @view-details="showConnectionDetails" @connection-updated="fetchConnections" />
+      <div v-for="connection in filteredConnections" :key="connection.id" class="relative">
+        <connection-card :connection="connection" :is-admin="isAdmin" @edit="openEditConnectionModal"
+          @view-details="showConnectionDetails" @connection-updated="fetchConnections" />
+      </div>
     </div>
 
     <!-- Modal de Detalhes da Conexão -->
@@ -81,6 +79,10 @@
               <div>
                 <span class="text-gray-500">Cliente:</span>
                 <p>{{ selectedConnection.clientName }}</p>
+              </div>
+              <div>
+                <span class="text-gray-500">Empresa:</span>
+                <p>{{ selectedCompanyName }}</p>
               </div>
               <div>
                 <span class="text-gray-500">Criado em:</span>
@@ -141,6 +143,20 @@
             placeholder="Ex: 5511999999999 (com código do país)" />
         </div>
 
+        <!-- Empresa (apenas para admin) -->
+        <div v-if="isAdmin">
+          <label class="block text-sm font-medium text-gray-700">
+            Empresa
+          </label>
+          <select v-model="newConnection.company_id" required
+            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+            <option value="" disabled>Selecione a empresa</option>
+            <option v-for="company in companiesStore.companies" :key="company.id" :value="company.id">
+              {{ company.name }}
+            </option>
+          </select>
+        </div>
+
         <!-- Botões -->
         <div class="flex justify-end gap-3 mt-6">
           <button type="button" @click="showCreateModal = false"
@@ -156,6 +172,36 @@
         </div>
       </form>
     </base-modal>
+
+    <!-- Modal de Edição de Conexão (apenas empresa) -->
+    <base-modal v-model="showEditModal" title="Alterar Empresa da Conexão">
+      <form @submit.prevent="updateConnectionCompany" class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700">
+            Empresa
+          </label>
+          <select v-model="editConnection.company_id" required
+            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+            <option value="" disabled>Selecione a empresa</option>
+            <option v-for="company in companiesStore.companies" :key="company.id" :value="company.id">
+              {{ company.name }}
+            </option>
+          </select>
+        </div>
+        <div class="flex justify-end gap-3 mt-6">
+          <button type="button" @click="showEditModal = false"
+            class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
+            Cancelar
+          </button>
+          <button type="submit"
+            class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
+            :disabled="isEditing">
+            <i v-if="isEditing" class="fas fa-spinner fa-spin mr-2"></i>
+            {{ isEditing ? 'Salvando...' : 'Salvar' }}
+          </button>
+        </div>
+      </form>
+    </base-modal>
   </div>
 </template>
 
@@ -165,30 +211,59 @@ import { useToast } from 'vue-toastification'
 import BaseButton from '../components/common/BaseButton.vue'
 import BaseModal from '../components/common/BaseModal.vue'
 import ConnectionCard from '../components/connections/ConnectionCard.vue'
+import ListFilterSort from '../components/common/ListFilterSort.vue'
 import { useConnectionStore } from '../stores/connection'
+import { useCompaniesStore } from '../stores/companies'
+import { useAuthStore } from '../stores/auth'
+import axios from 'axios'
 
 const toast = useToast()
 const connectionStore = useConnectionStore()
+const companiesStore = useCompaniesStore()
+const authStore = useAuthStore()
 const connections = ref([])
 const isLoading = ref(false)
 const showDetailsModal = ref(false)
 const selectedConnection = ref(null)
 const searchQuery = ref('')
 const sortOrder = ref('asc')
+const statusFilter = ref('')
 
 // Estado para o modal de criação
 const showCreateModal = ref(false)
 const isCreating = ref(false)
 const newConnection = ref({
   name: '',
-  phoneNumber: ''
+  phoneNumber: '',
+  company_id: ''
 })
+
+// Estado para o modal de edição
+const showEditModal = ref(false)
+const isEditing = ref(false)
+const editConnection = ref({
+  id: '',
+  name: '',
+  phoneNumber: '',
+  company_id: ''
+})
+
+const isAdmin = computed(() => authStore.isAdmin)
 
 // Computed property para filtrar e ordenar conexões
 const filteredConnections = computed(() => {
   let result = connections.value
 
-  // Aplicar filtro de busca
+  // Filtro de status
+  if (statusFilter.value) {
+    if (statusFilter.value === 'open') {
+      result = result.filter(connection => connection.connectionStatus === 'open')
+    } else if (statusFilter.value === 'disconnected') {
+      result = result.filter(connection => connection.connectionStatus !== 'open')
+    }
+  }
+
+  // Filtro de busca
   if (searchQuery.value) {
     const query = searchQuery.value.toLowerCase()
     result = result.filter(connection =>
@@ -197,11 +272,10 @@ const filteredConnections = computed(() => {
     )
   }
 
-  // Aplicar ordenação
+  // Ordenação
   return result.sort((a, b) => {
     const nameA = (a.name || '').toLowerCase()
     const nameB = (b.name || '').toLowerCase()
-
     if (sortOrder.value === 'asc') {
       return nameA.localeCompare(nameB)
     } else {
@@ -230,24 +304,30 @@ const handleImageError = (event) => {
   event.target.nextElementSibling?.classList.remove('hidden')
 }
 
-// Buscar conexões
+const companyConnections = ref([])
+
+const fetchCompanyConnections = async () => {
+  try {
+    const response = await axios.get(import.meta.env.VITE_WEBHOOK_COMPANIES_CONNECTIONS_LIST)
+    companyConnections.value = Array.isArray(response.data) ? response.data : []
+  } catch (error) {
+    companyConnections.value = []
+  }
+}
+
 const fetchConnections = async () => {
   try {
     isLoading.value = true
+    await companiesStore.fetchCompanies()
     await connectionStore.fetchConnections()
     connections.value = connectionStore.connections
+    await fetchCompanyConnections()
   } catch (error) {
     console.error('Erro ao carregar conexões:', error)
     toast.error('Erro ao carregar conexões')
   } finally {
     isLoading.value = false
   }
-}
-
-// Atualizar conexões
-const refreshConnections = () => {
-  fetchConnections()
-  toast.info('Atualizando lista de conexões...')
 }
 
 // Mostrar detalhes da conexão
@@ -257,32 +337,52 @@ const showConnectionDetails = (connection) => {
 }
 
 // Abrir modal de criação de conexão
-const openCreateConnectionModal = () => {
-  // Resetar o formulário
+const openCreateConnectionModal = async () => {
   newConnection.value = {
     name: '',
-    phoneNumber: ''
+    phoneNumber: '',
+    company_id: ''
   }
   showCreateModal.value = true
+  if (isAdmin.value && companiesStore.companies.length === 0) {
+    await companiesStore.fetchCompanies()
+  }
+}
+
+// Abrir modal de edição de conexão
+const openEditConnectionModal = async (connection) => {
+  editConnection.value = {
+    id: connection.id,
+    name: connection.name,
+    phoneNumber: connection.phoneNumber,
+    company_id: connection.company_id || ''
+  }
+  showEditModal.value = true
+  if (isAdmin.value && companiesStore.companies.length === 0) {
+    await companiesStore.fetchCompanies()
+  }
 }
 
 // Criar nova conexão
 const createConnection = async () => {
   try {
     isCreating.value = true
-
-    // Preparar dados para envio
-    const connectionData = {
+    // 1. Criar conexão na Evolution API
+    const evolutionResponse = await axios.post(import.meta.env.VITE_WEBHOOK_CONNECTIONS_CREATE, {
       name: newConnection.value.name,
       phoneNumber: newConnection.value.phoneNumber
-    }
+    })
+    const connectionId = evolutionResponse.data.id || evolutionResponse.data.connection_id || evolutionResponse.data.connectionId
+    if (!connectionId) throw new Error('ID da conexão não retornado pela Evolution API')
 
-    // Enviar para o webhook
-    await connectionStore.createConnection(connectionData)
+    // 2. Relacionar conexão à empresa no banco local
+    await axios.post(import.meta.env.VITE_WEBHOOK_COMPANIES_CONNECTIONS_CREATE, {
+      company_id: newConnection.value.company_id,
+      connection_id: connectionId
+    })
 
-    // Fechar modal e atualizar lista
     showCreateModal.value = false
-    toast.success('Conexão criada com sucesso!')
+    toast.success('Conexão criada e vinculada à empresa com sucesso!')
     fetchConnections()
   } catch (error) {
     console.error('Erro ao criar conexão:', error)
@@ -290,6 +390,48 @@ const createConnection = async () => {
   } finally {
     isCreating.value = false
   }
+}
+
+// Atualizar conexão
+const updateConnectionCompany = async () => {
+  try {
+    isEditing.value = true
+    // Atualizar apenas o relacionamento empresa-conexão
+    await axios.post(import.meta.env.VITE_WEBHOOK_COMPANIES_CONNECTIONS_UPDATE, {
+      company_id: editConnection.value.company_id,
+      connection_id: editConnection.value.id
+    })
+    showEditModal.value = false
+    toast.success('Empresa da conexão atualizada com sucesso!')
+    fetchConnections()
+  } catch (error) {
+    console.error('Erro ao atualizar empresa da conexão:', error)
+    toast.error('Erro ao atualizar empresa da conexão: ' + (error.message || 'Erro desconhecido'))
+  } finally {
+    isEditing.value = false
+  }
+}
+
+const selectedCompanyName = computed(() => {
+  if (!selectedConnection.value) return 'N/A'
+  console.log('selectedConnection.value.id:', selectedConnection.value.id)
+  console.log('companyConnections.value:', companyConnections.value)
+  const rel = companyConnections.value.find(
+    c => String(c.connection_id).trim() === String(selectedConnection.value.id).trim()
+  )
+  console.log('Relacionamento encontrado:', rel)
+  console.log('companiesStore.companies:', companiesStore.companies)
+  if (!rel) return 'N/A'
+  const company = companiesStore.companies.find(
+    c => String(c.id) === String(rel.company_id)
+  )
+  console.log('Empresa encontrada:', company)
+  return company ? company.name : 'N/A'
+})
+
+const refreshConnections = () => {
+  fetchConnections()
+  toast.info('Atualizando lista de conexões...')
 }
 
 onMounted(() => {
