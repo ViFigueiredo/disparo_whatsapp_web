@@ -81,11 +81,13 @@ const props = defineProps({
 const emit = defineEmits(['submit', 'cancel'])
 
 const formData = reactive({
+  id: props.connection.id || '',
   name: props.connection.name || '',
   company_id: props.connection.company_id || ''
 })
 
 const handleSubmit = () => {
+  console.log('Enviando formulário:', formData)
   emit('submit', { ...formData })
 }
-</script> 
+</script>
