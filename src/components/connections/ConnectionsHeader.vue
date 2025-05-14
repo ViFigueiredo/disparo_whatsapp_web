@@ -1,18 +1,10 @@
 <template>
   <div class="flex justify-between items-center">
-    <h2 class="text-2xl font-bold text-gray-900">Conexões de WhatsApp</h2>
-    <ListFilterSort 
-      :search="search" 
-      :sort="sort" 
-      @update:search="$emit('update:search', $event)"
-      @update:sort="$emit('update:sort', $event)"
-      search-placeholder="Buscar por nome..."
-    >
-      <select 
-        :value="status"
-        @input="$emit('update:status', $event.target.value)"
-        class="py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ml-2"
-      >
+    <h2 class="text-2xl font-bold text-gray-900">Conexões de WhatsApp ({{ connections.length }})</h2>
+    <ListFilterSort :search="search" :sort="sort" @update:search="$emit('update:search', $event)"
+      @update:sort="$emit('update:sort', $event)" search-placeholder="Buscar por nome...">
+      <select :value="status" @input="$emit('update:status', $event.target.value)"
+        class="py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ml-2">
         <option value="">Todas</option>
         <option value="open">Conectado</option>
         <option value="disconnected">Desconectado</option>
@@ -43,8 +35,12 @@ const props = defineProps({
   status: {
     type: String,
     required: true
+  },
+  connections: {
+    type: Array,
+    required: true
   }
 })
 
 const emit = defineEmits(['update:search', 'update:sort', 'update:status', 'new-connection', 'refresh'])
-</script> 
+</script>

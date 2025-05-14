@@ -2,28 +2,15 @@
     <div class="space-y-6">
         <loading-overlay v-if="companiesStore.loading" message="Carregando empresas..." />
 
-        <companies-header
-            v-model:search="searchQuery"
-            v-model:sort="sortOrder"
-            @new-company="openCreateCompanyModal"
-        />
+        <companies-header v-model:search="searchQuery" v-model:sort="sortOrder" :companies="filteredCompanies"
+            @new-company="openCreateCompanyModal" />
 
-        <company-table
-            :companies="filteredCompanies"
-            @edit="editCompany"
-            @delete="deleteCompany"
-        />
+        <company-table :companies="filteredCompanies" @edit="editCompany" @delete="deleteCompany" />
 
         <!-- Modal de Criação/Edição de Empresa -->
         <base-modal v-model="showCompanyModal" :title="isEditing ? 'Editar Empresa' : 'Nova Empresa'">
-            <company-form
-                :company="companyForm"
-                :is-editing="isEditing"
-                :is-submitting="isSubmitting"
-                @update:company="updateCompanyForm"
-                @submit="handleFormSubmit"
-                @cancel="showCompanyModal = false"
-            />
+            <company-form :company="companyForm" :is-editing="isEditing" :is-submitting="isSubmitting"
+                @update:company="updateCompanyForm" @submit="handleFormSubmit" @cancel="showCompanyModal = false" />
         </base-modal>
     </div>
 </template>
@@ -63,17 +50,19 @@ const companyForm = ref({
 
 // Computed
 const filteredCompanies = computed(() => {
-    let result = companiesStore.formattedCompanies
-    
+    let result = companiesStore.formattedCompanies.filter(company =>
+        company && Object.keys(company).length > 0 && company.name
+    )
+
     // Filtro de busca
     if (searchQuery.value) {
         const query = searchQuery.value.toLowerCase()
         result = result.filter(company =>
-            company.name.toLowerCase().includes(query) ||
-            company.email.toLowerCase().includes(query)
+            (company.name || '').toLowerCase().includes(query) ||
+            (company.email || '').toLowerCase().includes(query)
         )
     }
-    
+
     // Ordenação
     return result.sort((a, b) => {
         const nameA = (a.name || '').toLowerCase()
@@ -146,7 +135,7 @@ onMounted(async () => {
         router.push('/')
         return
     }
-    
+
     await companiesStore.fetchCompanies()
 })
 </script>

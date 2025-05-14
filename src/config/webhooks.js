@@ -5,6 +5,12 @@ export const webhooks = {
     update: import.meta.env.VITE_WEBHOOK_COMPANIES_UPDATE,
     delete: import.meta.env.VITE_WEBHOOK_COMPANIES_DELETE
   },
+  companiesConnections: {
+    list: import.meta.env.VITE_WEBHOOK_COMPANIES_CONNECTIONS_LIST,
+    create: import.meta.env.VITE_WEBHOOK_COMPANIES_CONNECTIONS_CREATE,
+    update: import.meta.env.VITE_WEBHOOK_COMPANIES_CONNECTIONS_UPDATE,
+    delete: import.meta.env.VITE_WEBHOOK_COMPANIES_CONNECTIONS_DELETE
+  },
   connections: {
     list: import.meta.env.VITE_WEBHOOK_CONNECTIONS_LIST,
     create: import.meta.env.VITE_WEBHOOK_CONNECTIONS_CREATE,

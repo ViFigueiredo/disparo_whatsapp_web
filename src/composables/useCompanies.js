@@ -1,7 +1,7 @@
 import { ref } from 'vue'
 import { useToast } from 'vue-toastification'
-import { webhooks } from '@/config/webhooks'
-import axios from 'axios'
+import { webhooks } from '../config/webhooks'
+import api from '../config/axios'
 
 const companies = ref([])
 const isLoading = ref(false)
@@ -9,48 +9,48 @@ const toast = useToast()
 
 export function useCompanies() {
     // Função para buscar todas as empresas
-    const fetchCompanies = async () => {
-        try {
-            isLoading.value = true
-            const response = await fetch(webhooks.companies.list)
+    // const fetchCompanies = async () => {
+    //     try {
+    //         isLoading.value = true
+    //         const response = await fetch(webhooks.companies.list)
 
-            if (!response.ok) {
-                throw new Error('Erro ao buscar empresas')
-            }
+    //         if (!response.ok) {
+    //             throw new Error('Erro ao buscar empresas')
+    //         }
 
-            const data = await response.json()
-            companies.value = data
-        } catch (error) {
-            console.error('Erro ao carregar empresas:', error)
-            toast.error('Erro ao carregar lista de empresas')
-        } finally {
-            isLoading.value = false
-        }
-    }
+    //         const data = await response.json()
+    //         companies.value = data
+    //     } catch (error) {
+    //         console.error('Erro ao carregar empresas:', error)
+    //         toast.error('Erro ao carregar lista de empresas')
+    //     } finally {
+    //         isLoading.value = false
+    //     }
+    // }
 
     // Função para buscar uma empresa específica
-    const fetchCompany = async (id) => {
-        try {
-            isLoading.value = true
-            const response = await fetch(`${webhooks.companies.get}/${id}`)
+    // const fetchCompany = async (id) => {
+    //     try {
+    //         isLoading.value = true
+    //         const response = await fetch(`${webhooks.companies.get}/${id}`)
 
-            if (!response.ok) {
-                throw new Error('Erro ao buscar empresa')
-            }
+    //         if (!response.ok) {
+    //             throw new Error('Erro ao buscar empresa')
+    //         }
 
-            return await response.json()
-        } catch (error) {
-            console.error('Erro ao carregar empresa:', error)
-            toast.error('Erro ao carregar dados da empresa')
-            return null
-        } finally {
-            isLoading.value = false
-        }
-    }
+    //         return await response.json()
+    //     } catch (error) {
+    //         console.error('Erro ao carregar empresa:', error)
+    //         toast.error('Erro ao carregar dados da empresa')
+    //         return null
+    //     } finally {
+    //         isLoading.value = false
+    //     }
+    // }
 
     const createCompany = async (companyData) => {
         try {
-            await axios.post(import.meta.env.VITE_WEBHOOK_COMPANIES_CREATE, companyData)
+            await api.post(webhooks.companies.create, companyData)
             toast.success('Empresa criada com sucesso!')
             await fetchCompanies()
             return true
@@ -63,7 +63,7 @@ export function useCompanies() {
 
     const updateCompany = async (companyData) => {
         try {
-            await axios.post(import.meta.env.VITE_WEBHOOK_COMPANIES_UPDATE, companyData)
+            await api.post(webhooks.companies.update, companyData)
             toast.success('Empresa atualizada com sucesso!')
             await fetchCompanies()
             return true
@@ -76,7 +76,7 @@ export function useCompanies() {
 
     const deleteCompany = async (companyId) => {
         try {
-            await axios.post(import.meta.env.VITE_WEBHOOK_COMPANIES_DELETE, { id: companyId })
+            await api.post(webhooks.companies.delete, { id: companyId })
             toast.success('Empresa excluída com sucesso!')
             await fetchCompanies()
             return true

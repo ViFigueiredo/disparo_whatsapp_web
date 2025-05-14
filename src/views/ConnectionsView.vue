@@ -2,57 +2,33 @@
   <div class="space-y-6 relative">
     <loading-overlay v-if="isLoading" message="Carregando conexões..." />
 
-    <connections-header
-      v-model:search="searchQuery"
-      v-model:sort="sortOrder"
-      v-model:status="statusFilter"
-      @new-connection="openCreateConnectionModal"
-      @refresh="refreshConnections"
-    />
+    <connections-header v-model:search="searchQuery" v-model:sort="sortOrder" v-model:status="statusFilter"
+      :connections="filteredConnections" @new-connection="openCreateConnectionModal" @refresh="refreshConnections" />
 
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       <div v-for="connection in filteredConnections" :key="connection.id" class="relative">
-        <connection-card 
-          :connection="connection" 
-          :is-admin="isAdmin" 
-          @edit="openEditConnectionModal"
-          @view-details="showConnectionDetails" 
-          @connection-updated="fetchConnections" 
-        />
+        <connection-card :connection="connection" :is-admin="isAdmin" @edit="openEditConnectionModal"
+          @view-details="showConnectionDetails" @connection-updated="fetchConnections" />
       </div>
     </div>
 
     <!-- Modal de Detalhes da Conexão -->
     <base-modal v-if="selectedConnection" v-model="showDetailsModal" title="Detalhes da Conexão">
-      <connection-details 
-        :connection="selectedConnection"
-        :company-name="getCompanyNameForConnection(selectedConnection.id)"
-      />
+      <connection-details :connection="selectedConnection"
+        :company-name="getCompanyNameForConnection(selectedConnection.id)" />
     </base-modal>
 
     <!-- Modal de Criação de Conexão -->
     <base-modal v-model="showCreateModal" title="Nova Conexão">
-      <connection-form
-        :is-admin="isAdmin"
-        :companies="companiesStore.companies"
-        :is-submitting="isCreating"
-        submit-button-text="Criar Conexão"
-        @submit="handleCreateConnection"
-        @cancel="showCreateModal = false"
-      />
+      <connection-form :is-admin="isAdmin" :companies="companiesStore.companies" :is-submitting="isCreating"
+        submit-button-text="Criar Conexão" @submit="handleCreateConnection" @cancel="showCreateModal = false" />
     </base-modal>
 
     <!-- Modal de Edição de Conexão -->
     <base-modal v-model="showEditModal" title="Alterar Empresa da Conexão">
-      <connection-form
-        :connection="editConnection"
-        :is-admin="isAdmin"
-        :companies="companiesStore.companies"
-        :is-submitting="isEditing"
-        submit-button-text="Salvar"
-        @submit="handleUpdateConnection"
-        @cancel="showEditModal = false"
-      />
+      <connection-form :connection="editConnection" :is-admin="isAdmin" :companies="companiesStore.companies"
+        :is-submitting="isEditing" submit-button-text="Salvar" @submit="handleUpdateConnection"
+        @cancel="showEditModal = false" />
     </base-modal>
   </div>
 </template>
@@ -78,7 +54,7 @@ const toast = useToast()
 // Stores and composables
 const authStore = useAuthStore()
 const companiesStore = useCompaniesStore()
-const { 
+const {
   connections,
   isLoading,
   fetchConnections,
@@ -107,7 +83,9 @@ const editConnection = ref({
 const isAdmin = computed(() => authStore.isAdmin)
 
 const filteredConnections = computed(() => {
-  let result = connections.value
+  let result = connections.value.filter(connection =>
+    connection && Object.keys(connection).length > 0 && connection.name
+  )
 
   // Filtro de status
   if (statusFilter.value) {
@@ -122,8 +100,8 @@ const filteredConnections = computed(() => {
   if (searchQuery.value) {
     const query = searchQuery.value.toLowerCase()
     result = result.filter(connection =>
-      connection.name.toLowerCase().includes(query) ||
-      connection.profileName?.toLowerCase().includes(query)
+      (connection.name || '').toLowerCase().includes(query) ||
+      (connection.profileName || '').toLowerCase().includes(query)
     )
   }
 
@@ -166,29 +144,53 @@ const openEditConnectionModal = async (connection) => {
 
 const handleCreateConnection = async (formData) => {
   isCreating.value = true
-  const success = await createConnection(formData)
-  if (success) {
-    showCreateModal.value = false
+  try {
+    const success = await createConnection(formData)
+    if (success) {
+      showCreateModal.value = false
+      toast.success('Conexão criada com sucesso!')
+    }
+  } catch (error) {
+    console.error('Erro ao criar conexão:', error)
+    toast.error('Erro ao criar conexão')
+  } finally {
+    isCreating.value = false
   }
-  isCreating.value = false
 }
 
 const handleUpdateConnection = async (formData) => {
   isEditing.value = true
-  const success = await updateConnectionCompany(formData)
-  if (success) {
-    showEditModal.value = false
+  try {
+    const success = await updateConnectionCompany(formData)
+    if (success) {
+      showEditModal.value = false
+      toast.success('Conexão atualizada com sucesso!')
+    }
+  } catch (error) {
+    console.error('Erro ao atualizar conexão:', error)
+    toast.error('Erro ao atualizar conexão')
+  } finally {
+    isEditing.value = false
   }
-  isEditing.value = false
 }
 
-const refreshConnections = () => {
-  fetchConnections()
-  toast.info('Atualizando lista de conexões...')
+const refreshConnections = async () => {
+  try {
+    await fetchConnections()
+    toast.success('Lista de conexões atualizada!')
+  } catch (error) {
+    console.error('Erro ao atualizar conexões:', error)
+    toast.error('Erro ao atualizar conexões')
+  }
 }
 
 // Lifecycle
-onMounted(() => {
-  fetchConnections()
+onMounted(async () => {
+  try {
+    await fetchConnections()
+  } catch (error) {
+    console.error('Erro ao carregar conexões:', error)
+    toast.error('Erro ao carregar conexões')
+  }
 })
 </script>

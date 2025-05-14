@@ -264,73 +264,38 @@ const openConnectModal = async () => {
 
 // Iniciar polling para verificar status da conexão
 const startConnectionPolling = () => {
-    // Limpar intervalo anterior se existir
     if (connectionInterval.value) {
         clearInterval(connectionInterval.value)
     }
 
     let attempts = 0;
-    const maxAttempts = 3; // Número máximo de tentativas de QR code
+    const maxAttempts = 3;
 
-    // Verificar status a cada 40 segundos
     connectionInterval.value = setInterval(async () => {
         try {
-            const status = await connectionStore.checkConnectionStatus(props.connection.name);
+            const response = await connectionStore.checkConnectionStatus(props.connection.name);
 
-            if (status.connected) {
-                // Se conectado com sucesso
-                clearInterval(connectionInterval.value)
-                connectStep.value = 'success'
-                emit('connection-updated')
-            } else if (status.error) {
-                // Se ocorreu um erro
-                clearInterval(connectionInterval.value)
-                connectStep.value = 'error'
-                errorMessage.value = status.message || 'Erro ao estabelecer conexão'
-            } else {
-                // Se ainda estiver aguardando e não estiver conectado após 40s
-                attempts++;
-
-                if (attempts >= maxAttempts) {
-                    // Se atingiu o número máximo de tentativas, mostrar erro
-                    clearInterval(connectionInterval.value)
-                    connectStep.value = 'error'
-                    errorMessage.value = 'Tempo limite excedido. Por favor, tente novamente.'
-                } else {
-                    // Gerar um novo QR code
-                    try {
-                        console.log(`Tentativa ${attempts + 1}: Gerando novo QR code...`);
-                        const response = await connectionStore.connectInstance(props.connection.name);
-
-                        if (response && Array.isArray(response) && response.length > 0 && response[0].success) {
-                            const data = response[0].data;
-
-                            if (data.base64) {
-                                // Se retornou QR code, mostrar para o usuário escanear
-                                qrCodeImage.value = data.base64.startsWith('data:image')
-                                    ? data.base64
-                                    : `data:image/png;base64,${data.base64}`;
-                                connectStep.value = 'qrcode';
-                                toast.info(`QR code atualizado. Tentativa ${attempts + 1} de ${maxAttempts}`);
-                            } else if (data.pairingCode) {
-                                // Se retornou código de pareamento, mostrar para o usuário
-                                pairingCode.value = data.pairingCode;
-                                connectStep.value = 'pairingCode';
-                                toast.info(`Código de pareamento atualizado. Tentativa ${attempts + 1} de ${maxAttempts}`);
-                            }
-                        } else {
-                            throw new Error('Formato de resposta inválido');
-                        }
-                    } catch (error) {
-                        console.error('Erro ao gerar novo QR code:', error);
-                        // Continuar tentando na próxima iteração
-                    }
+            // Verifica se a resposta é um array e tem success true
+            if (Array.isArray(response) && response[0]?.success && Array.isArray(response[0].data)) {
+                const conn = response[0].data[0];
+                if (conn && conn.connectionStatus === 'open') {
+                    clearInterval(connectionInterval.value);
+                    connectStep.value = 'success';
+                    showConnectModal.value = false; // Fecha o modal
+                    emit('connection-updated'); // Atualiza a lista de conexões
+                    return;
                 }
+            }
+
+            attempts++;
+            if (attempts >= maxAttempts) {
+                clearInterval(connectionInterval.value);
+                connectStep.value = 'error';
+                errorMessage.value = 'Tempo limite excedido. Por favor, tente novamente.';
             }
         } catch (error) {
             console.error('Erro ao verificar status da conexão:', error);
             attempts++;
-
             if (attempts >= maxAttempts) {
                 clearInterval(connectionInterval.value);
                 connectStep.value = 'error';
@@ -384,17 +349,21 @@ const removeConnection = async () => {
     try {
         isRemoving.value = true
 
-        console.log('Iniciando remoção da conexão:', props.connection.name);
+        console.log('Iniciando remoção da conexão:', props.connection.id);
 
-        // Verificar se o nome da conexão existe
-        if (!props.connection.name) {
-            console.error('ERRO: Nome da conexão não encontrado!');
-            toast.error('Erro ao remover conexão: Nome da conexão não encontrado');
+        // Verificar se o id da conexão existe
+        if (!props.connection.id) {
+            console.error('ERRO: ID da conexão não encontrado!');
+            toast.error('Erro ao remover conexão: ID da conexão não encontrado');
             return;
         }
 
         // Chamar API para remover conexão
-        await connectionStore.removeConnection(props.connection.name)
+        await connectionStore.deleteConnection({
+            id: props.connection.id,
+            name: props.connection.name,
+            status: props.connection.connectionStatus
+        })
 
         // Fechar modal
         showRemoveModal.value = false

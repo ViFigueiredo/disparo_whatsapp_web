@@ -61,27 +61,42 @@ export const useConnectionStore = defineStore('connection', {
       }
     },
 
-    async getConnectionState(connectionId) {
+    async deleteConnection(connection) {
       try {
         this.isLoading = true
-        const response = await api.get(`${webhooks.connections.state}?id=${connectionId}`)
-        return response.data
+        await api.delete(webhooks.connections.delete, { data: { id: connection.id, name: connection.name, status: connection.status } })
+        await this.fetchConnections()
+        return true
       } catch (error) {
-        console.error('Erro ao buscar estado da conexão:', error)
+        console.error('Erro ao excluir conexão:', error)
         throw error
       } finally {
         this.isLoading = false
       }
     },
 
-    async deleteConnection(connectionId) {
+    async connectInstance(connectionName) {
       try {
         this.isLoading = true
-        await api.delete(webhooks.connections.delete, { data: { id: connectionId } })
+        // Ajuste o endpoint conforme sua API
+        const response = await api.post(webhooks.connections.connect, { name: connectionName })
         await this.fetchConnections()
-        return true
+        return response.data
       } catch (error) {
-        console.error('Erro ao excluir conexão:', error)
+        console.error('Erro ao conectar instância:', error)
+        throw error
+      } finally {
+        this.isLoading = false
+      }
+    },
+
+    async checkConnectionStatus(connectionName) {
+      try {
+        this.isLoading = true
+        const response = await api.post(webhooks.connections.state, { name: connectionName })
+        return response.data
+      } catch (error) {
+        console.error('Erro ao verificar estado da conexão:', error)
         throw error
       } finally {
         this.isLoading = false

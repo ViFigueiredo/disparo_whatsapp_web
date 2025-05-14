@@ -1,11 +1,6 @@
 <template>
     <div class="space-y-6">
-        <div class="flex justify-between items-center">
-            <h2 class="text-2xl font-bold text-gray-900">Usuários</h2>
-            <base-button @click="openCreateUserModal">
-                <i class="fas fa-plus"></i>
-            </base-button>
-        </div>
+        <UsersHeader :users="validUsers" @new-user="openCreateUserModal" />
 
         <!-- Lista de Usuários -->
         <div class="bg-white shadow rounded-lg overflow-hidden">
@@ -27,12 +22,12 @@
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
-                    <tr v-for="user in users" :key="user.id">
+                    <tr v-for="user in validUsers" :key="user.id">
                         <td class="px-6 py-4 whitespace-nowrap">{{ user.name }}</td>
                         <td class="px-6 py-4 whitespace-nowrap">{{ user.email }}</td>
                         <td class="px-6 py-4 whitespace-nowrap">{{ companyName(user.company_id) }}</td>
                         <td class="px-6 py-4 whitespace-nowrap">{{ user.role === 'admin' ? 'Administrador' : 'Usuário'
-                            }}</td>
+                        }}</td>
                         <td class="px-6 py-4 whitespace-nowrap">
                             <span :class="[
                                 'px-2 inline-flex text-xs leading-5 font-semibold rounded-full',
@@ -77,7 +72,8 @@
                     <select v-model="userForm.company_id" required
                         class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
                         <option value="" disabled>Selecione a empresa</option>
-                        <option v-for="company in companies" :key="company.id" :value="company.id">{{ company.name }}
+                        <option v-for="company in validCompanies" :key="company.id" :value="company.id">{{ company.name
+                        }}
                         </option>
                     </select>
                 </div>
@@ -105,11 +101,12 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useToast } from 'vue-toastification'
 import BaseButton from '../components/common/BaseButton.vue'
 import BaseModal from '../components/common/BaseModal.vue'
 import axios from 'axios'
+import UsersHeader from '../components/users/UsersHeader.vue'
 
 const toast = useToast()
 const users = ref([])
@@ -124,6 +121,20 @@ const userForm = ref({
     company_id: '',
     role: 'user',
     status: 'active'
+})
+
+// Computed property para filtrar usuários válidos
+const validUsers = computed(() => {
+    return users.value.filter(user =>
+        user && Object.keys(user).length > 0 && user.name && user.email
+    )
+})
+
+// Computed property para filtrar empresas válidas
+const validCompanies = computed(() => {
+    return companies.value.filter(company =>
+        company && Object.keys(company).length > 0 && company.name
+    )
 })
 
 const companyName = (id) => {
@@ -201,10 +212,13 @@ const handleSubmit = async () => {
             showUserModal.value = false
             await fetchUsers()
         } else {
-            await axios.post(import.meta.env.VITE_WEBHOOK_USERS_CREATE, userForm.value)
-            toast.success('Usuário criado com sucesso!')
-            showUserModal.value = false
-            await fetchUsers()
+            const response = await axios.post(import.meta.env.VITE_WEBHOOK_USERS_CREATE, userForm.value)
+            if (response.data) {
+                toast.success('Usuário criado com sucesso!')
+                showUserModal.value = false
+                users.value = [...users.value, response.data]
+                await fetchUsers()
+            }
         }
     } catch (error) {
         console.error('Erro ao salvar usuário:', error)
