@@ -3,7 +3,8 @@
     <loading-overlay v-if="isLoading" message="Carregando conexões..." />
 
     <connections-header v-model:search="searchQuery" v-model:sort="sortOrder" v-model:status="statusFilter"
-      :connections="filteredConnections" @new-connection="openCreateConnectionModal" @refresh="refreshConnections" />
+      :companies="companiesStore.companies" v-model:company="companyFilter" :connections="filteredConnections"
+      @new-connection="openCreateConnectionModal" @refresh="refreshConnections" />
 
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       <div v-for="connection in filteredConnections" :key="connection.id" class="relative">
@@ -67,6 +68,7 @@ const {
 const searchQuery = ref('')
 const sortOrder = ref('asc')
 const statusFilter = ref('')
+const companyFilter = ref('')
 const showDetailsModal = ref(false)
 const showCreateModal = ref(false)
 const showEditModal = ref(false)
@@ -94,6 +96,13 @@ const filteredConnections = computed(() => {
     } else if (statusFilter.value === 'disconnected') {
       result = result.filter(connection => connection.connectionStatus !== 'open')
     }
+  }
+
+  // Filtro de empresa
+  if (companyFilter.value === 'none') {
+    result = result.filter(connection => !connection.companyId)
+  } else if (companyFilter.value) {
+    result = result.filter(connection => String(connection.companyId) === String(companyFilter.value))
   }
 
   // Filtro de busca
