@@ -6,7 +6,7 @@
         <div class="flex justify-between h-16">
           <!-- Logo -->
           <div class="flex-shrink-0 flex items-center w-48">
-            <h1 class="text-xl font-bold text-blue-600">WhatsApp Web</h1>
+            <h1 class="text-xl font-bold text-blue-600">Gestor Whatsapp</h1>
           </div>
 
           <!-- Links de navegação (centralizado) -->
