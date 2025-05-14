@@ -128,7 +128,6 @@ const filteredConnections = computed(() => {
 
 // Methods
 const showConnectionDetails = (connection) => {
-  console.log('selectedConnection:', connection)
   selectedConnection.value = connection
   showDetailsModal.value = true
 }
@@ -141,7 +140,6 @@ const openCreateConnectionModal = async () => {
 }
 
 const openEditConnectionModal = async (connection) => {
-  console.log('Abrindo modal de edição para conexão:', connection)
   editConnection.value = {
     id: connection.id,
     name: connection.name,

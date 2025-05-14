@@ -87,7 +87,6 @@ const formData = reactive({
 })
 
 const handleSubmit = () => {
-  console.log('Enviando formulário:', formData)
   emit('submit', { ...formData })
 }
 </script>

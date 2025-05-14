@@ -258,8 +258,6 @@ const fetchBusinessTemplates = async (connection) => {
       return
     }
     
-    console.log('Buscando templates de negócio para a conexão:', connection.name)
-    
     // Fazer a chamada para a API com o nome da conexão
     const response = await fetch(`${webhooks.business.templates}?connection=${connection.name}`)
     
@@ -268,7 +266,6 @@ const fetchBusinessTemplates = async (connection) => {
     }
     
     const data = await response.json()
-    console.log('Dados recebidos:', data)
     
     // Processar os dados recebidos
     if (Array.isArray(data)) {
@@ -283,7 +280,6 @@ const fetchBusinessTemplates = async (connection) => {
       businessTemplates.value = []
     }
     
-    console.log('Templates de negócio carregados:', businessTemplates.value)
   } catch (error) {
     console.error('Erro ao carregar templates de negócio:', error)
     toast.error(`Erro ao carregar templates de negócio: ${error.message}`)
@@ -300,7 +296,6 @@ const fetchConnections = async () => {
     
     if (!response.ok) throw new Error('Erro ao buscar conexões')
     connections.value = await response.json()
-    console.log('Conexões carregadas:', connections.value)
   } catch (error) {
     console.error('Erro ao carregar conexões:', error)
     toast.error('Erro ao carregar conexões')
@@ -340,7 +335,6 @@ const fetchValidationLists = async () => {
 }
 
 onMounted(async () => {
-  console.log('Template recebido para edição:', props.template)
   try {
     loading.value = true // Ativar loading no início do carregamento
     
@@ -350,7 +344,6 @@ onMounted(async () => {
     ])
     
     if (props.template) {
-      console.log('Estrutura do template recebido:', JSON.stringify(props.template, null, 2))
       
       // Encontra a conexão correspondente - verifica diferentes formatos possíveis
       let matchingConnection = null
@@ -363,8 +356,6 @@ onMounted(async () => {
         matchingConnection = connections.value.find(c => c.name === props.template.template_connection.name)
       }
       
-      console.log('Conexão encontrada:', matchingConnection)
-      
       // Procura a lista usando o ID do template
       const listId = parseInt(props.template.template_list_id)
       
@@ -375,7 +366,6 @@ onMounted(async () => {
 
       // MODIFICAÇÃO IMPORTANTE: Se for integração de negócio, carrega os templates ANTES de preencher o formulário
       if (matchingConnection && matchingConnection.integration === 'WHATSAPP-BUSINESS') {
-        console.log('Detectada conexão business na edição, carregando templates...')
         await fetchBusinessTemplates(matchingConnection)
       }
 
@@ -409,9 +399,7 @@ onMounted(async () => {
         // Verificar se temos um businessTemplate salvo
         if (props.template.business_template_id) {
           form.value.businessTemplate = props.template.business_template_id
-          console.log('Template de negócio selecionado pelo ID:', props.template.business_template_id)
         } else if (props.template.businessTemplate) {
-          console.log('Template de negócio encontrado no objeto:', props.template.businessTemplate)
           
           // Verificar se o template está no formato de ID ou objeto completo
           let templateId = null
@@ -424,7 +412,6 @@ onMounted(async () => {
           
           // Definir o valor no formulário apenas se encontrarmos um ID válido
           if (templateId) {
-            console.log('Definindo template de negócio para:', templateId)
             form.value.businessTemplate = templateId
             
             // Verificar se o template existe na lista carregada
@@ -448,12 +435,8 @@ onMounted(async () => {
 const handleConnectionChange = async (event) => {
   const connection = event.value
   
-  // Log da conexão selecionada
-  console.log('Conexão selecionada:', connection)
-  
   // Verificar se é uma conexão business
   if (connection && connection.integration === 'WHATSAPP-BUSINESS') {
-    console.log('Conexão business detectada, carregando templates de negócio...')
     
     // Resetar campos que não são usados em WHATSAPP-BUSINESS
     form.value.message = ''
@@ -462,17 +445,6 @@ const handleConnectionChange = async (event) => {
     // Carregar templates de negócio usando a função existente
     await fetchBusinessTemplates(connection)
     
-    // Log detalhado de cada template
-    if (Array.isArray(businessTemplates.value)) {
-      businessTemplates.value.forEach((template, index) => {
-        console.log(`Template ${index + 1}:`, {
-          id: template.id || 'N/A',
-          name: template.name || 'N/A',
-          language: template.language || 'N/A',
-          category: template.category || 'N/A'
-        })
-      })
-    }
   } else {
     // Resetar campo de template de negócio
     form.value.businessTemplate = null
@@ -536,7 +508,6 @@ const handleSubmit = () => {
     
     if (selectedTemplate) {
       formData.businessTemplate = selectedTemplate;
-      console.log('Template de negócio selecionado para envio:', selectedTemplate);
     }
   }
   

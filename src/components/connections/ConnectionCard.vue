@@ -349,8 +349,6 @@ const removeConnection = async () => {
     try {
         isRemoving.value = true
 
-        console.log('Iniciando remoção da conexão:', props.connection.id);
-
         // Verificar se o id da conexão existe
         if (!props.connection.id) {
             console.error('ERRO: ID da conexão não encontrado!');

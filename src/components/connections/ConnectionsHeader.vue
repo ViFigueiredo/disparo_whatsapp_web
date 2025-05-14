@@ -35,7 +35,7 @@
       <select v-model="company" @change="emit('update:company', company)" class="py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
         <option value="">Todas as empresas</option>
         <option value="none">Sem empresa vinculada</option>
-        <option v-for="companyObj in companies" :key="companyObj.id" :value="companyObj.id">
+        <option v-for="companyObj in companies" :key="companyObj.id" :value="String(companyObj.id)">
           {{ companyObj.name }}
         </option>
       </select>
