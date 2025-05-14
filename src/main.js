@@ -29,10 +29,13 @@ const toastOptions = {
 
 app.use(PrimeVue, {
   theme: {
-      preset: Aura
+    preset: Aura
   }
 });
 app.use(pinia)
 app.use(router)
 app.use(Toast, toastOptions)
+
+document.title = import.meta.env.VITE_APP_TITLE || 'App';
+
 app.mount('#app')
