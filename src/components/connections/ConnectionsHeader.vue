@@ -3,6 +3,9 @@
     <div class="flex justify-between items-center mb-2">
       <h2 class="text-2xl font-bold text-gray-900">Conexões de WhatsApp ({{ connections.length }})</h2>
       <div class="flex gap-2">
+        <button v-if="isAnyFilterActive" @click="clearFilters" class="bg-red-400 text-white px-4 py-2 rounded hover:bg-red-600" title="Limpar filtros">
+          <i class="fas fa-filter-circle-xmark"></i>
+        </button>
         <button @click="showFilters = !showFilters" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
           <i class="fas fa-filter"></i>
         </button>
@@ -41,7 +44,7 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, watch, computed } from 'vue'
 
 const props = defineProps({
   search: String,
@@ -65,6 +68,20 @@ const sort = ref(props.sort)
 const status = ref(props.status)
 const company = ref(props.company)
 const showFilters = ref(false)
+
+const isAnyFilterActive = computed(() => {
+  return (
+    (search.value && search.value.trim() !== '') ||
+    (status.value && status.value !== '') ||
+    (company.value && company.value !== '')
+  )
+})
+
+function clearFilters() {
+  search.value = ''
+  status.value = ''
+  company.value = ''
+}
 
 watch(search, val => emit('update:search', val))
 watch(sort, val => emit('update:sort', val))
