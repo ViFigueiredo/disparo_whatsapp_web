@@ -1,5 +1,6 @@
 <template>
     <div class="space-y-6">
+        <loading-overlay v-if="isLoading" message="Carregando usuários..." />
         <UsersHeader :users="validUsers" @new-user="openCreateUserModal" />
 
         <!-- Lista de Usuários -->
@@ -105,6 +106,7 @@ import { ref, onMounted, computed } from 'vue'
 import { useToast } from 'vue-toastification'
 import BaseButton from '../components/common/BaseButton.vue'
 import BaseModal from '../components/common/BaseModal.vue'
+import LoadingOverlay from '../components/common/LoadingOverlay.vue'
 import axios from 'axios'
 import UsersHeader from '../components/users/UsersHeader.vue'
 
@@ -122,6 +124,8 @@ const userForm = ref({
     role: 'user',
     status: 'active'
 })
+const usersLoading = ref(false)
+const companiesLoading = ref(false)
 
 // Computed property para filtrar usuários válidos
 const validUsers = computed(() => {
@@ -144,21 +148,27 @@ const companyName = (id) => {
 
 const fetchUsers = async () => {
     try {
+        usersLoading.value = true
         const response = await axios.get(import.meta.env.VITE_WEBHOOK_USERS_LIST)
         users.value = Array.isArray(response.data) ? response.data : []
     } catch (error) {
         users.value = []
         toast.error('Erro ao carregar usuários')
+    } finally {
+        usersLoading.value = false
     }
 }
 
 const fetchCompanies = async () => {
     try {
+        companiesLoading.value = true
         const response = await axios.get(import.meta.env.VITE_WEBHOOK_COMPANIES_LIST)
         companies.value = Array.isArray(response.data) ? response.data : []
     } catch (error) {
         companies.value = []
         toast.error('Erro ao carregar empresas')
+    } finally {
+        companiesLoading.value = false
     }
 }
 
@@ -227,6 +237,8 @@ const handleSubmit = async () => {
         isSubmitting.value = false
     }
 }
+
+const isLoading = computed(() => usersLoading.value || companiesLoading.value)
 
 onMounted(() => {
     fetchUsers()

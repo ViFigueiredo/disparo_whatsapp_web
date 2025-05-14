@@ -145,7 +145,7 @@ const openEditConnectionModal = async (connection) => {
   editConnection.value = {
     id: connection.id,
     name: connection.name,
-    company_id: connection.company_id || ''
+    company_id: connection.companyId || ''
   }
   if (isAdmin.value && companiesStore.companies.length === 0) {
     await companiesStore.fetchCompanies()
@@ -172,10 +172,17 @@ const handleCreateConnection = async (formData) => {
 const handleUpdateConnection = async (formData) => {
   isEditing.value = true
   try {
+    // Verifica se a empresa selecionada é igual à atual
+    const currentConnection = connections.value.find(conn => conn.id === formData.id)
+    if (currentConnection && String(currentConnection.companyId) === String(formData.company_id)) {
+      showEditModal.value = false
+      toast.success('Empresa da conexão atualizada com sucesso!')
+      return
+    }
     const success = await updateConnectionCompany(formData)
     if (success) {
       showEditModal.value = false
-      toast.success('Conexão atualizada com sucesso!')
+      toast.success('Empresa da conexão atualizada com sucesso!')
     }
   } catch (error) {
     console.error('Erro ao atualizar conexão:', error)
