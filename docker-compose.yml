@@ -1,0 +1,38 @@
+version: "3.8"
+
+services:
+  web:
+    image: # imagem docker hub
+    build:
+      context: .
+      dockerfile: Dockerfile
+    deploy:
+      mode: replicated
+      replicas: 2
+      placement:
+        constraints:
+          - node.role == manager
+      resources:
+        limits:
+          cpus: "0.4"
+          memory: 256M
+      labels:
+        - traefik.enable=true
+        #SSL
+        - traefik.http.routers.disparo-whatsapp.rule=Host(`<dominio>`) # atenção
+        - traefik.http.routers.disparo-whatsapp.entrypoints=websecure
+        - traefik.http.routers.disparo-whatsapp.tls.certresolver=le
+        - traefik.http.routers.disparo-whatsapp.service=disparo-whatsapp
+        - traefik.http.services.disparo-whatsapp.loadbalancer.server.port=3000
+        - netdata.enable=true
+        - netdata.port=3000
+        - netdata.name=disparo-whatsapp
+    networks:
+      - traefik_public
+      - digital_network
+
+networks:
+  traefik_public:
+    external: true
+  digital_network:
+    external: true
