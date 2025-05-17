@@ -5,28 +5,15 @@
     <templates-header @new-template="openCreateModal" />
 
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      <template-card 
-        v-for="template in filteredTemplates" 
-        :key="template.id" 
-        :template="template" 
-        @edit="openEditModal"
-        @clone="cloneTemplate" 
-        @preview="showPreview" 
-        @validate="validateTemplate" 
-        @delete="deleteTemplate"
-        @execute="executeTemplate" 
-      />
+      <template-card v-for="template in filteredTemplates" :key="template.id" :template="template" @edit="openEditModal"
+        @clone="cloneTemplate" @preview="showPreview" @validate="validateTemplate" @delete="deleteTemplate"
+        @execute="executeTemplate" />
     </div>
 
     <base-modal v-model="showTemplateModal" :title="getModalTitle">
-      <template-form 
-        :template="currentTemplate" 
-        :is-submitting="isSubmitting"
-        :companies="isAdmin ? companies : []"
-        :is-admin="isAdmin"
-        @submit="handleTemplateSubmit" 
-        @cancel="closeTemplateModal" 
-      />
+      <template-form :template="currentTemplate" :is-submitting="isSubmitting" :companies="isAdmin ? companies : []"
+        :is-admin="isAdmin" :validationLists="filteredValidationLists" @submit="handleTemplateSubmit"
+        @cancel="closeTemplateModal" />
     </base-modal>
 
     <base-modal v-model="showPreviewModal" title="Preview do Template">
@@ -35,11 +22,7 @@
       </div>
     </base-modal>
 
-    <template-details-modal 
-      v-if="selectedTemplate" 
-      v-model:show="showDetailsModal" 
-      :template="selectedTemplate" 
-    />
+    <template-details-modal v-if="selectedTemplate" v-model:show="showDetailsModal" :template="selectedTemplate" />
   </div>
 </template>
 
@@ -48,6 +31,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useTemplates } from '../composables/useTemplates'
 import { useAuth } from '../composables/useAuth'
 import { useCompanies } from '../composables/useCompanies'
+import { useLeads } from '../composables/useLeads'
 
 // Components
 import BaseModal from '../components/common/BaseModal.vue'
@@ -60,8 +44,8 @@ import LoadingOverlay from '../components/common/LoadingOverlay.vue'
 // Composables
 const { user, isAdmin } = useAuth()
 const { companies, fetchCompanies } = useCompanies()
-const { 
-  isLoading, 
+const {
+  isLoading,
   templates,
   fetchTemplates,
   createTemplate,
@@ -70,6 +54,8 @@ const {
   validateTemplate: validateTemplateAction,
   executeTemplate: executeTemplateAction
 } = useTemplates()
+
+const { validationLists, fetchValidationLists } = useLeads()
 
 // State
 const showTemplateModal = ref(false)
@@ -90,6 +76,16 @@ const getModalTitle = computed(() => {
 const filteredTemplates = computed(() => {
   if (isAdmin.value) return templates.value
   return templates.value.filter(template => template.company_id === user.value.company_id)
+})
+
+const filteredValidationLists = computed(() => {
+  if (isAdmin.value) {
+    return validationLists.value
+  } else {
+    return validationLists.value.filter(list =>
+      list.company_id === user.value.company_id
+    )
+  }
 })
 
 // Methods
@@ -165,5 +161,6 @@ onMounted(async () => {
     await fetchCompanies()
   }
   await fetchTemplates()
+  await fetchValidationLists()
 })
 </script>

@@ -9,24 +9,19 @@ const toast = useToast()
 
 export function useCompanies() {
     // Função para buscar todas as empresas
-    // const fetchCompanies = async () => {
-    //     try {
-    //         isLoading.value = true
-    //         const response = await fetch(webhooks.companies.list)
-
-    //         if (!response.ok) {
-    //             throw new Error('Erro ao buscar empresas')
-    //         }
-
-    //         const data = await response.json()
-    //         companies.value = data
-    //     } catch (error) {
-    //         console.error('Erro ao carregar empresas:', error)
-    //         toast.error('Erro ao carregar lista de empresas')
-    //     } finally {
-    //         isLoading.value = false
-    //     }
-    // }
+    const fetchCompanies = async () => {
+        try {
+            isLoading.value = true
+            const response = await api.get(webhooks.companies.list)
+            companies.value = Array.isArray(response.data) ? response.data : []
+        } catch (error) {
+            console.error('Erro ao carregar empresas:', error)
+            toast.error('Erro ao carregar lista de empresas')
+            companies.value = []
+        } finally {
+            isLoading.value = false
+        }
+    }
 
     // Função para buscar uma empresa específica
     // const fetchCompany = async (id) => {
@@ -91,7 +86,6 @@ export function useCompanies() {
         companies,
         isLoading,
         fetchCompanies,
-        fetchCompany,
         createCompany,
         updateCompany,
         deleteCompany
