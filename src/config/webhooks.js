@@ -20,7 +20,7 @@ export const webhooks = {
   },
   validation: {
     list: import.meta.env.VITE_WEBHOOK_VALIDATION_LIST,
-    create: import.meta.env.VITE_WEBHOOK_VALIDATION_SAVE,
+    save: import.meta.env.VITE_WEBHOOK_VALIDATION_SAVE || 'https://n8nhook.grupoavantti.com.br/webhook/validation/save',
     delete: import.meta.env.VITE_WEBHOOK_VALIDATION_DELETE,
     validate: import.meta.env.VITE_WEBHOOK_VALIDATION
   },

@@ -12,18 +12,50 @@ export function useLeads() {
             isLoading.value = true
             const response = await fetch(webhooks.validation.list)
 
-            const contentType = response.headers.get('content-type')
-            if (!contentType || !contentType.includes('application/json')) {
-                throw new Error('O servidor retornou um formato inválido. Esperado: JSON')
-            }
-
             if (!response.ok) {
                 throw new Error(`Erro ao carregar listas: ${response.status} ${response.statusText}`)
             }
 
             const data = await response.json()
-            const lists = data[1]?.lists || []
-            validationLists.value = lists
+            console.log('Dados brutos recebidos:', data)
+
+            // Validar se os dados são um array e têm o formato esperado
+            if (!Array.isArray(data) || data.length < 2) {
+                console.warn('Formato inválido ou dados vazios')
+                validationLists.value = []
+                return
+            }
+
+            // Processar os leads e listas
+            const leads = data[0]?.leads || []
+            const listsData = data[1]?.lists || []
+
+            console.log('Leads recebidos:', leads)
+            console.log('Listas recebidas:', listsData)
+
+            if (!Array.isArray(listsData)) {
+                console.warn('Formato de listas inválido')
+                validationLists.value = []
+                return
+            }
+
+            // Mapear as listas com os dados necessários
+            validationLists.value = listsData.map(list => {
+                // Encontrar os leads desta lista
+                const listLeads = leads.filter(lead => lead.list_id === parseInt(list.id))
+                
+                return {
+                    id: list.id,
+                    name: list.name,
+                    company_id: list.company_id,
+                    total_leads: listLeads.length,
+                    valid_leads: listLeads.filter(lead => lead.exists).length,
+                    invalid_leads: listLeads.filter(lead => !lead.exists).length,
+                    created_at: list.created_at || new Date().toISOString()
+                }
+            })
+
+            console.log('Listas processadas:', validationLists.value)
         } catch (error) {
             console.error('Erro ao carregar listas:', error)
             toast.error(`Erro ao carregar listas: ${error.message}`)
@@ -36,25 +68,74 @@ export function useLeads() {
     const validateLeads = async (leads) => {
         try {
             isLoading.value = true
+            
+            // Validar se há leads para validar
+            if (!leads || !Array.isArray(leads) || leads.length === 0) {
+                console.warn('Nenhum lead para validar')
+                toast.warning('Nenhum lead para validar')
+                return []
+            }
+
+            // Formatar os leads para envio
+            const formattedLeads = leads.map(lead => {
+                if (!lead.numero || !lead.nome) {
+                    console.warn('Lead inválido:', lead)
+                    return null
+                }
+                return {
+                    number: lead.numero.replace(/[^\d]/g, ''),
+                    name: lead.nome.trim()
+                }
+            }).filter(Boolean)
+
+            if (formattedLeads.length === 0) {
+                console.warn('Nenhum lead válido após formatação')
+                toast.warning('Nenhum lead válido para validar')
+                return []
+            }
+
+            console.log('Enviando leads para validação:', formattedLeads)
+
+            const payload = {
+                leads: formattedLeads
+            }
+
+            console.log('Payload da requisição:', payload)
+
             const response = await fetch(webhooks.validation.validate, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ leads })
+                body: JSON.stringify(payload)
             })
 
             if (!response.ok) {
-                throw new Error('Erro ao validar números')
+                const errorData = await response.json().catch(() => null)
+                console.error('Erro na resposta do servidor:', {
+                    status: response.status,
+                    statusText: response.statusText,
+                    data: errorData
+                })
+                throw new Error(errorData?.message || `Erro ao validar números: ${response.status} ${response.statusText}`)
             }
 
             const data = await response.json()
+            console.log('Resposta da validação:', data)
+
+            // Validar o formato da resposta
+            if (!Array.isArray(data)) {
+                console.error('Formato de resposta inválido:', data)
+                throw new Error('Formato de resposta inválido do servidor')
+            }
+
             const validatedLeads = data
                 .map(result => {
                     if (result.success && result.data && result.data.length > 0) {
                         const validationData = result.data[0]
+                        const originalLead = leads.find(l => l.numero === validationData.number)
                         return {
-                            nome: leads.find(l => l.numero === validationData.number)?.nome || '',
+                            nome: originalLead?.nome || '',
                             numero: validationData.number,
                             exists: validationData.exists,
                             jid: validationData.jid
@@ -70,7 +151,7 @@ export function useLeads() {
             return validatedLeads
         } catch (error) {
             console.error('Erro na validação:', error)
-            toast.error('Erro ao validar números')
+            toast.error(error.message || 'Erro ao validar números')
             return []
         } finally {
             isLoading.value = false
@@ -80,24 +161,58 @@ export function useLeads() {
     const saveValidationList = async (listData) => {
         try {
             isLoading.value = true
+
+            // Validar dados antes de enviar
+            if (!listData || !listData.name || !Array.isArray(listData.leads)) {
+                console.error('Dados inválidos para salvar:', listData)
+                throw new Error('Dados inválidos para salvar a lista')
+            }
+
+            // Formatar dados para envio
+            const payload = {
+                name: listData.name,
+                leads: listData.leads.map(lead => ({
+                    nome: lead.nome,
+                    numero: lead.numero,
+                    exists: lead.exists,
+                    jid: lead.jid
+                })),
+                total_leads: listData.leads.length,
+                valid_leads: listData.leads.filter(lead => lead.exists).length,
+                invalid_leads: listData.leads.filter(lead => !lead.exists).length,
+                company_id: listData.companyId || undefined
+            }
+
+            console.log('Payload completo:', payload)
+            console.log('Company ID:', payload.company_id)
+
             const response = await fetch(webhooks.validation.save, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify(listData)
+                body: JSON.stringify(payload)
             })
 
             if (!response.ok) {
-                throw new Error('Erro ao salvar lista')
+                const errorData = await response.json().catch(() => null)
+                console.error('Erro na resposta do servidor:', {
+                    status: response.status,
+                    statusText: response.statusText,
+                    data: errorData
+                })
+                throw new Error(errorData?.message || `Erro ao salvar lista: ${response.status} ${response.statusText}`)
             }
+
+            const data = await response.json()
+            console.log('Resposta do servidor:', data)
 
             await fetchValidationLists()
             toast.success('Lista salva com sucesso!')
             return true
         } catch (error) {
             console.error('Erro ao salvar lista:', error)
-            toast.error('Erro ao salvar lista')
+            toast.error(error.message || 'Erro ao salvar lista')
             return false
         } finally {
             isLoading.value = false
