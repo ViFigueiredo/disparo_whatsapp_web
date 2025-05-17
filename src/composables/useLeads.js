@@ -10,6 +10,7 @@ export function useLeads() {
     const fetchValidationLists = async () => {
         try {
             isLoading.value = true
+            validationLists.value = []
             const response = await fetch(webhooks.validation.list)
 
             if (!response.ok) {
@@ -22,7 +23,6 @@ export function useLeads() {
             // Validar se os dados são um array e têm o formato esperado
             if (!Array.isArray(data) || data.length < 2) {
                 console.warn('Formato inválido ou dados vazios')
-                validationLists.value = []
                 return
             }
 
@@ -35,14 +35,13 @@ export function useLeads() {
 
             if (!Array.isArray(listsData)) {
                 console.warn('Formato de listas inválido')
-                validationLists.value = []
                 return
             }
 
             // Mapear as listas com os dados necessários
-            validationLists.value = listsData.map(list => {
+            const processedLists = listsData.map(list => {
                 // Encontrar os leads desta lista
-                const listLeads = leads.filter(lead => lead.list_id === parseInt(list.id))
+                const listLeads = leads.filter(lead => String(lead.list_id) === String(list.id))
                 
                 return {
                     id: list.id,
@@ -53,9 +52,11 @@ export function useLeads() {
                     invalid_leads: listLeads.filter(lead => !lead.exists).length,
                     created_at: list.created_at || new Date().toISOString()
                 }
-            })
+            }).filter(list => list.id != null && list.name != null);
 
-            console.log('Listas processadas:', validationLists.value)
+            validationLists.value = processedLists;
+
+            console.log('Listas processadas e atribuídas a validationLists.value:', validationLists.value)
         } catch (error) {
             console.error('Erro ao carregar listas:', error)
             toast.error(`Erro ao carregar listas: ${error.message}`)

@@ -176,6 +176,7 @@ const deleteList = async (listId) => {
     }
 
     await fetchValidationLists()
+    console.log('validationLists após fetch em deleteList:', validationLists.value)
     toast.success('Lista excluída com sucesso!')
   } catch (error) {
     console.error('Erro ao excluir lista:', error)
