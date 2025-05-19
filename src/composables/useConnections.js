@@ -27,7 +27,9 @@ export function useConnections() {
         toast.warning('Nenhuma conexão de empresa encontrada.')
       }
     } catch (error) {
+      console.error('Erro ao buscar conexões da empresa:', error)
       companyConnections.value = []
+      toast.error('Erro ao buscar conexões da empresa')
     }
   }
 
@@ -59,10 +61,22 @@ export function useConnections() {
       // Corrigir para tratar array ou objeto
       const responseData = Array.isArray(evolutionResponse.data) ? evolutionResponse.data[0] : evolutionResponse.data;
 
+      if (!responseData) {
+        throw new Error('Resposta inválida da API');
+      }
+
       const connectionId = responseData.id || responseData.connection_id || responseData.connectionId;
       if (!connectionId) {
         console.warn('Nenhum campo de ID encontrado na resposta:', responseData);
         throw new Error('ID da conexão não retornado pela Evolution API');
+      }
+
+      // 2. Vincular à empresa se houver company_id
+      if (connectionData.company_id) {
+        await api.post(webhooks.companiesConnections.create, {
+          company_id: connectionData.company_id,
+          connection_id: connectionId
+        });
       }
 
       toast.success('Conexão criada e vinculada à empresa com sucesso!')
@@ -78,9 +92,9 @@ export function useConnections() {
   const updateConnectionCompany = async (connectionData) => {
     try {
       // Encontrar a conexão atual para obter o connection_id da Evolution
-      const currentConnection = connections.value.find(conn => {
-        return conn.id === connectionData.id
-      })
+      const currentConnection = connections.value.find(conn =>
+        String(conn.id) === String(connectionData.id)
+      )
 
       if (!currentConnection) {
         console.error('Conexão não encontrada. ID buscado:', connectionData.id)

@@ -114,6 +114,7 @@ import { ref, onMounted, nextTick, computed, watch } from 'vue'
 import { webhooks } from '@/config/webhooks'
 import { useToast } from 'vue-toastification'
 import Dropdown from 'primevue/dropdown'
+import api from '@/services/api'
 
 const toast = useToast()
 const loading = ref(false) // Novo estado para controlar o loading
@@ -261,10 +262,8 @@ const fetchBusinessTemplates = async (connection) => {
 const fetchConnections = async () => {
   try {
     loading.value = true // Ativar loading
-    const response = await fetch(webhooks.connections.list)
-
-    if (!response.ok) throw new Error('Erro ao buscar conexões')
-    connections.value = await response.json()
+    const response = await api.get(webhooks.connections.list)
+    connections.value = response.data
   } catch (error) {
     console.error('Erro ao carregar conexões:', error)
     toast.error('Erro ao carregar conexões')
@@ -276,9 +275,8 @@ const fetchConnections = async () => {
 const fetchValidationLists = async () => {
   try {
     loading.value = true // Ativar loading
-    const response = await fetch(webhooks.validation.list)
-    if (!response.ok) throw new Error('Erro ao carregar listas de validação')
-    const data = await response.json()
+    const response = await api.get(webhooks.validation.list)
+    const data = response.data
 
     // Processa os dados recebidos
     if (Array.isArray(data) && data.length >= 2) {
@@ -296,7 +294,7 @@ const fetchValidationLists = async () => {
       })
     }
   } catch (error) {
-    console.error('Erro ao carregar listas:', error)
+    console.error('Erro ao carregar listas de validação:', error)
     toast.error('Erro ao carregar listas de validação')
   } finally {
     loading.value = false // Desativar loading independente do resultado
