@@ -89,6 +89,13 @@ const filteredConnections = computed(() => {
     connection && Object.keys(connection).length > 0 && connection.name
   )
 
+  // **FILTRO ADICIONAL: Restringir por empresa para usuários comuns**
+  if (!isAdmin.value && authStore.user?.company_id) {
+    result = result.filter(connection =>
+      String(connection.companyId) === String(authStore.user.company_id)
+    );
+  }
+
   // Filtro de status
   if (statusFilter.value) {
     if (statusFilter.value === 'open') {
