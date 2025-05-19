@@ -69,6 +69,12 @@
 
     <!-- Modal de Upload -->
     <base-modal v-model="showUploadModal" title="Upload de Lista de Leads">
+      <div class="mb-4">
+        <button @click="downloadTemplate" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+          <i class="fas fa-download mr-2"></i>
+          Baixar Modelo CSV
+        </button>
+      </div>
       <upload-form :form="form" :is-submitting="isSubmitting" :is-admin="isAdmin" :companies="companies"
         @file-upload="handleFileUpload" @validate="validateLeads" @submit="handleSubmit" @cancel="closeUploadModal" />
     </base-modal>
@@ -413,6 +419,32 @@ const handleSubmit = async () => {
     toast.error('Erro ao salvar lista')
   } finally {
     isSubmitting.value = false
+  }
+}
+
+const downloadTemplate = () => {
+  try {
+    // Criar cabeçalho do CSV
+    const headers = ['nome', 'numero']
+    const csvContent = [
+      headers.join(','),
+      'João Silva,5511999999999',
+      'Maria Santos,5511988888888'
+    ].join('\n')
+
+    // Criar blob e link para download
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const link = document.createElement('a')
+    const url = URL.createObjectURL(blob)
+    link.setAttribute('href', url)
+    link.setAttribute('download', 'modelo_leads.csv')
+    link.style.visibility = 'hidden'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  } catch (error) {
+    console.error('Erro ao gerar template CSV:', error)
+    toast.error('Erro ao gerar arquivo de modelo')
   }
 }
 

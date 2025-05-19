@@ -1,4 +1,4 @@
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useToast } from 'vue-toastification'
 import { useValidationStore } from '../stores/validation'
 import { webhooks } from '../config/webhooks'
@@ -7,10 +7,11 @@ import api from '../config/axios'
 export function useLeads() {
     const toast = useToast()
     const validationStore = useValidationStore()
+    const localLoading = ref(false)
 
     const validationLists = computed(() => validationStore.lists)
     const leads = computed(() => validationStore.leads)
-    const isLoading = computed(() => validationStore.isLoading)
+    const isLoading = computed(() => validationStore.isLoading || localLoading.value)
     const error = computed(() => validationStore.error)
 
     const fetchValidationLists = async () => {
@@ -24,21 +25,45 @@ export function useLeads() {
 
     const validateLeads = async (leads) => {
         try {
-            isLoading.value = true
+            localLoading.value = true
             const response = await api.post(webhooks.validation.validate, { leads })
-            return response.data
+
+            // Verificar se a resposta é um array
+            if (!Array.isArray(response.data)) {
+                throw new Error('Formato de resposta inválido')
+            }
+
+            // Processar cada item do array de resposta
+            const validatedLeads = response.data.map((item, index) => {
+                if (!item.success || !Array.isArray(item.data) || item.data.length === 0) {
+                    return {
+                        ...leads[index],
+                        exists: false,
+                        jid: null
+                    }
+                }
+
+                const validationResult = item.data[0]
+                return {
+                    ...leads[index],
+                    exists: validationResult.exists,
+                    jid: validationResult.jid
+                }
+            })
+
+            return validatedLeads
         } catch (error) {
             console.error('Erro na validação:', error)
             toast.error(error.message || 'Erro ao validar números')
             return []
         } finally {
-            isLoading.value = false
+            localLoading.value = false
         }
     }
 
     const saveValidationList = async (listData) => {
         try {
-            isLoading.value = true
+            localLoading.value = true
 
             // Validar dados antes de enviar
             if (!listData || !listData.name || !Array.isArray(listData.leads)) {
@@ -61,6 +86,8 @@ export function useLeads() {
                 company_id: listData.companyId || undefined
             }
 
+            console.log('Payload completo:', payload)
+            console.log('Company ID:', payload.company_id)
 
             const response = await fetch(webhooks.validation.save, {
                 method: 'POST',
@@ -82,13 +109,13 @@ export function useLeads() {
             toast.error('Erro ao salvar lista: ' + (error.message || 'Erro desconhecido'))
             return false
         } finally {
-            isLoading.value = false
+            localLoading.value = false
         }
     }
 
     const deleteValidationList = async (listId) => {
         try {
-            isLoading.value = true
+            localLoading.value = true
             const response = await fetch(webhooks.validation.delete, {
                 method: 'DELETE',
                 headers: {
@@ -109,7 +136,7 @@ export function useLeads() {
             toast.error('Erro ao excluir lista: ' + (error.message || 'Erro desconhecido'))
             return false
         } finally {
-            isLoading.value = false
+            localLoading.value = false
         }
     }
 
