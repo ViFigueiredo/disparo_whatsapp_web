@@ -204,12 +204,21 @@ const resetForm = () => {
 }
 
 const fetchCompanies = async () => {
-  if (!isAdmin.value) return
-
   try {
-    const response = await fetch(webhooks.companies.list)
+    let response
+    if (isAdmin.value) {
+      response = await fetch(webhooks.companies.list)
+    } else {
+      response = await fetch(webhooks.companies.listone, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ id: user.value.company_id })
+      })
+    }
     if (!response.ok) throw new Error('Erro ao carregar empresas')
-
+    
     const data = await response.json()
     companies.value = Array.isArray(data) ? data : []
   } catch (error) {
@@ -219,7 +228,11 @@ const fetchCompanies = async () => {
 }
 
 const getCompanyName = (companyId) => {
-  const company = companies.value.find(c => String(c.id) === String(companyId))
+  const companiesArr = Array.isArray(companies.value) ? companies.value : Array.from(companies.value)
+  console.log('companiesArr', companiesArr)
+  console.log('procurando companyId', companyId)
+  const company = companiesArr.find(c => String(c.id) === String(companyId))
+  console.log('company encontrado', company)
   return company ? company.name : 'N/A'
 }
 
@@ -408,7 +421,7 @@ const handleSubmit = async () => {
       validLeads: form.value.leads.filter(lead => lead.exists).length,
       invalidLeads: form.value.leads.filter(lead => !lead.exists).length,
       createdAt: new Date().toISOString(),
-      companyId: isAdmin.value ? form.value.companyId : user.value.company_id
+      company_id: isAdmin.value ? form.value.companyId : user.value.company_id
     }
 
     await saveValidationList(listData)
@@ -451,10 +464,7 @@ const downloadTemplate = () => {
 // Lifecycle
 onMounted(async () => {
   try {
-    // Primeiro carregar as empresas
     await fetchCompanies()
-
-    // Depois carregar as listas
     await fetchValidationLists()
   } catch (error) {
     console.error('Erro ao carregar dados:', error)

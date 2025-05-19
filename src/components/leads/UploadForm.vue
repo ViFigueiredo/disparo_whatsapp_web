@@ -43,7 +43,7 @@
     <!-- Estatísticas de Validação -->
     <div v-if="form.validated" class="mt-4 bg-gray-50 rounded-lg p-4">
       <h3 class="text-lg font-medium text-gray-900 mb-2">Resultado da Validação</h3>
-      <div class="grid grid-cols-2 gap-4">
+      <div class="grid grid-cols-3 gap-4">
         <div class="text-center">
           <p class="text-sm text-gray-500">Total de Números</p>
           <p class="text-2xl font-bold text-gray-900">{{ form.leads.length }}</p>
@@ -51,6 +51,10 @@
         <div class="text-center">
           <p class="text-sm text-gray-500">Números Válidos</p>
           <p class="text-2xl font-bold text-green-600">{{ validNumbers }}</p>
+        </div>
+        <div class="text-center">
+          <p class="text-sm text-gray-500">Números Inválidos</p>
+          <p class="text-2xl font-bold text-red-600">{{ invalidNumbers }}</p>
         </div>
       </div>
     </div>
@@ -100,5 +104,9 @@ defineEmits(['submit', 'cancel', 'validate', 'file-upload'])
 
 const validNumbers = computed(() => {
   return props.form.leads.filter(lead => lead.exists).length
+})
+
+const invalidNumbers = computed(() => {
+  return props.form.leads.filter(lead => !lead.exists).length
 })
 </script>

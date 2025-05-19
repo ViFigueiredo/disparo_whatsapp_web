@@ -83,7 +83,7 @@ export function useLeads() {
                 total_leads: listData.leads.length,
                 valid_leads: listData.leads.filter(lead => lead.exists).length,
                 invalid_leads: listData.leads.filter(lead => !lead.exists).length,
-                company_id: listData.companyId || undefined
+                company_id: listData.company_id || undefined
             }
 
             console.log('Payload completo:', payload)

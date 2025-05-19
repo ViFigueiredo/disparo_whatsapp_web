@@ -28,47 +28,47 @@ export const useTemplateStore = defineStore('template', {
       try {
         this.isLoading = true
         this.error = null
-        
+
         // Preparar os dados para envio
         const payload = {
-          template_name: template.name,
-          template_message: template.message || '',
-          template_connection: template.connection.name,
-          template_list_id: template.validationListId,
-          template_list_name: template.validationList?.name,
-          validationList: template.validationList,
-          customFields: template.customFields || [],
-          integration_type: template.connection.integration || template.integration_type || null
+          template_name: template.name ?? null,
+          template_message: template.message ?? null,
+          template_connection: template.connection?.name ?? null,
+          template_list_id: template.validationListId ?? null,
+          template_list_name: template.validationList?.name ?? null,
+          validationList: template.validationList ?? null,
+          customFields: template.customFields ?? null,
+          integration_type: template.connection?.integration ?? template.integration_type ?? null,
+          company_id: template.company_id ?? null,
+          businessTemplate: null,
+          business_template_name: null,
+          business_template_language: null,
+          business_template_category: null,
+          connection_jid: null
         }
-        
+
         // Adicionar informações do template de negócio se for uma conexão business
-        if (template.connection.integration === 'WHATSAPP-BUSINESS' && template.businessTemplate) {
-          payload.businessTemplate = typeof template.businessTemplate === 'object' 
-            ? template.businessTemplate.id 
+        if (template.connection?.integration === 'WHATSAPP-BUSINESS' && template.businessTemplate) {
+          payload.businessTemplate = typeof template.businessTemplate === 'object'
+            ? template.businessTemplate.id
             : template.businessTemplate
-                
+
           if (typeof template.businessTemplate === 'object') {
             payload.business_template_name = template.businessTemplate.name || 'Template de Negócio WhatsApp'
-                
-            if (template.businessTemplate.language) {
-              payload.business_template_language = template.businessTemplate.language
-            }
-                
-            if (template.businessTemplate.category) {
-              payload.business_template_category = template.businessTemplate.category
-            }
+            payload.business_template_language = template.businessTemplate.language ?? null
+            payload.business_template_category = template.businessTemplate.category ?? null
           }
-        } else if (template.connection.integration === 'WHATSAPP-BAILEYS') {
+        } else if (template.connection?.integration === 'WHATSAPP-BAILEYS') {
           if (template.connection.ownerJid) {
             payload.connection_jid = template.connection.ownerJid
           }
         }
-        
+
         const response = await api.post(webhooks.templates.create, payload)
-        
+
         // Atualizar a lista de templates após a criação
         await this.fetchTemplates()
-        
+
         return response.data
       } catch (error) {
         console.error('Erro ao criar template:', error)
@@ -83,12 +83,12 @@ export const useTemplateStore = defineStore('template', {
       try {
         this.isLoading = true
         this.error = null
-        
+
         const response = await api.put(webhooks.templates.update, template)
-        
+
         // Atualizar a lista de templates após a atualização
         await this.fetchTemplates()
-        
+
         return response.data
       } catch (error) {
         console.error('Erro ao atualizar template:', error)
@@ -103,13 +103,13 @@ export const useTemplateStore = defineStore('template', {
       try {
         this.isLoading = true
         await api.delete(webhooks.templates.delete, { data: { id: templateId } })
-        
+
         // Atualiza a lista local removendo o template excluído
         this.templates = this.templates.filter(template => template.id !== templateId)
-        
+
         // Força uma nova busca dos templates para garantir sincronização
         await this.fetchTemplates()
-        
+
         return true
       } catch (error) {
         console.error('Erro ao excluir template:', error)
@@ -122,18 +122,18 @@ export const useTemplateStore = defineStore('template', {
     async executeTemplate(template) {
       try {
         this.isLoading = true
-        
+
         // Função auxiliar para selecionar mensagem aleatória
         const getRandomMessage = (messages) => {
           return messages[Math.floor(Math.random() * messages.length)]
         }
-    
+
         // Extrair os JIDs da lista de validação
         const jids = template.validationList.leads.map(lead => ({
           jid: lead.jid,
           message: getRandomMessage(template.aiResponses)
         }))
-        
+
         // Preparar os dados para envio
         const payload = {
           template_id: template.id,
@@ -143,16 +143,16 @@ export const useTemplateStore = defineStore('template', {
           template_list_name: template.template_list_name,
           leadsMessages: jids
         }
-        
+
         // Verificar se é uma conexão business
         let isBusinessConnection = false
-        
+
         if (template.template_connection && typeof template.template_connection === 'object') {
           isBusinessConnection = template.template_connection.integration === 'WHATSAPP-BUSINESS'
         } else if (typeof template.template_connection === 'string') {
           isBusinessConnection = template.integration_type === 'WHATSAPP-BUSINESS'
         }
-        
+
         if (isBusinessConnection) {
           if (template.businessTemplate) {
             if (typeof template.businessTemplate === 'object' && template.businessTemplate.name) {
@@ -167,14 +167,14 @@ export const useTemplateStore = defineStore('template', {
           } else {
             payload.business_template_name = "hello_world"
           }
-          
+
           if (typeof template.businessTemplate === 'object' && template.businessTemplate.id) {
             payload.businessTemplate = template.businessTemplate.id
           } else if (typeof template.businessTemplate === 'string') {
             payload.businessTemplate = template.businessTemplate
           }
         }
-        
+
         const response = await api.post(webhooks.templates.execute, payload)
         return response.data
       } catch (error) {
