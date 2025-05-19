@@ -119,18 +119,14 @@ const isAdmin = computed(() => user.value?.role === 'admin')
 
 // Filtrar listas por empresa
 const filteredValidationLists = computed(() => {
-  console.log('Dados completos recebidos:', validationLists.value)
-  console.log('Usuário atual:', user.value)
 
   // Verificar se temos dados válidos
   if (!validationLists.value || !Array.isArray(validationLists.value)) {
-    console.log('validationLists está vazio ou não é um array')
     return []
   }
 
   // Se for admin, retorna todas as listas
   if (isAdmin.value) {
-    console.log('Usuário é admin, retornando todas as listas')
     return validationLists.value
   }
 
@@ -138,11 +134,9 @@ const filteredValidationLists = computed(() => {
   const filtered = validationLists.value.filter(list => {
     const listCompanyId = String(list.company_id)
     const userCompanyId = String(user.value.company_id)
-    console.log(`Comparando company_id: ${listCompanyId} com ${userCompanyId}`)
     return listCompanyId === userCompanyId
   })
 
-  console.log('Listas filtradas por empresa:', filtered)
   return filtered
 })
 
@@ -176,7 +170,6 @@ const deleteList = async (listId) => {
     }
 
     await fetchValidationLists()
-    console.log('validationLists após fetch em deleteList:', validationLists.value)
     toast.success('Lista excluída com sucesso!')
   } catch (error) {
     console.error('Erro ao excluir lista:', error)
@@ -220,11 +213,7 @@ const fetchCompanies = async () => {
 }
 
 const getCompanyName = (companyId) => {
-  console.log('Buscando empresa para ID:', companyId)
-  console.log('Lista de empresas disponível:', companies.value)
-
   const company = companies.value.find(c => String(c.id) === String(companyId))
-  console.log('Empresa encontrada:', company)
   return company ? company.name : 'N/A'
 }
 
@@ -315,8 +304,6 @@ const processCSVFormat = (lines, event) => {
       })
       .filter(lead => lead.nome && lead.numero && lead.numero.length >= 10)
 
-    console.log('Leads processados do CSV:', processedLeads)
-
     if (processedLeads.length > 0) {
       form.value.leads = processedLeads
       toast.success(`${processedLeads.length} leads carregados com sucesso!`)
@@ -371,8 +358,6 @@ const handleFileUpload = (event) => {
         return
       }
 
-      console.log('Primeiras linhas do arquivo:', lines.slice(0, 3))
-
       const firstLine = lines[0].trim()
       const isTabular = !firstLine.includes(',') && (firstLine.includes('\t') || firstLine.split(/\s+/).length > 1)
 
@@ -396,10 +381,7 @@ const validateLeads = async () => {
     return
   }
 
-  console.log('Leads antes da validação:', form.value.leads)
-
   const validatedLeads = await validateLeadsList(form.value.leads)
-  console.log('Leads após validação:', validatedLeads)
 
   if (validatedLeads && validatedLeads.length > 0) {
     form.value.leads = validatedLeads
@@ -412,7 +394,6 @@ const validateLeads = async () => {
 const handleSubmit = async () => {
   isSubmitting.value = true
   try {
-    console.log('Dados do formulário antes do envio:', form.value)
 
     const listData = {
       name: form.value.name,
@@ -423,8 +404,6 @@ const handleSubmit = async () => {
       createdAt: new Date().toISOString(),
       companyId: isAdmin.value ? form.value.companyId : user.value.company_id
     }
-
-    console.log('Dados preparados para envio:', listData)
 
     await saveValidationList(listData)
     showUploadModal.value = false
@@ -442,11 +421,9 @@ onMounted(async () => {
   try {
     // Primeiro carregar as empresas
     await fetchCompanies()
-    console.log('Empresas carregadas:', companies.value)
 
     // Depois carregar as listas
     await fetchValidationLists()
-    console.log('Listas carregadas:', validationLists.value)
   } catch (error) {
     console.error('Erro ao carregar dados:', error)
     toast.error('Erro ao carregar dados')

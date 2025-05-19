@@ -3,14 +3,18 @@
         <div class="max-w-md w-full space-y-8">
             <div>
                 <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
-                    Faça login em sua conta
+                    {{ appTitle }}
                 </h2>
+                <p class="mt-2 text-center text-sm text-gray-600">
+                    Faça login em sua conta
+                </p>
             </div>
 
             <login-form
                 v-model:email="email"
                 v-model:password="password"
                 :is-loading="isLoading"
+                :error="error"
                 @submit="handleSubmit"
                 @forgot-password="handleForgotPassword"
             />
@@ -19,7 +23,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useToast } from 'vue-toastification'
 import { useAuthStore } from '../stores/auth'
@@ -32,15 +36,33 @@ const authStore = useAuthStore()
 const email = ref('')
 const password = ref('')
 const isLoading = ref(false)
+const error = ref('')
+
+const appTitle = computed(() => import.meta.env.VITE_APP_TITLE)
 
 const handleSubmit = async () => {
+    if (!email.value || !password.value) {
+        error.value = 'Por favor, preencha todos os campos'
+        return
+    }
+
     isLoading.value = true
+    error.value = ''
+
     try {
         await authStore.login(email.value, password.value)
+        toast.success('Login realizado com sucesso!')
         router.push('/')
     } catch (error) {
         console.error('Erro no login:', error)
-        toast.error('Email ou senha inválidos')
+        if (error.response?.status === 401) {
+            error.value = 'Email ou senha inválidos'
+        } else if (error.response?.status === 403) {
+            error.value = 'Acesso negado. Verifique suas credenciais.'
+        } else {
+            error.value = 'Erro ao fazer login. Tente novamente mais tarde.'
+        }
+        toast.error(error.value)
     } finally {
         isLoading.value = false
     }

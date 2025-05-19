@@ -1,45 +1,52 @@
-import { ref, computed } from 'vue'
-
-const user = ref(null)
+import { computed } from 'vue'
+import { useAuthStore } from '../stores/auth'
 
 export function useAuth() {
-  // Função para carregar os dados do usuário do localStorage
-  const loadUser = () => {
-    const storedUser = localStorage.getItem('user')
-    if (storedUser) {
-      user.value = JSON.parse(storedUser)
+  const authStore = useAuthStore()
+
+  const user = computed(() => authStore.user)
+  const company = computed(() => authStore.company)
+  const token = computed(() => authStore.token)
+  const isAdmin = computed(() => authStore.isAdmin)
+  const isCompanyUser = computed(() => authStore.isCompanyUser)
+
+  const login = async (email, password) => {
+    try {
+      return await authStore.login(email, password)
+    } catch (error) {
+      throw error
     }
   }
 
-  // Carregar usuário ao inicializar
-  loadUser()
-
-  // Computed para verificar se é admin
-  const isAdmin = computed(() => {
-    return user.value?.role === 'admin'
-  })
-
-  // Função para atualizar o usuário
-  const setUser = (userData) => {
-    user.value = userData
-    if (userData) {
-      localStorage.setItem('user', JSON.stringify(userData))
-    } else {
-      localStorage.removeItem('user')
+  const logout = async () => {
+    try {
+      await authStore.logout()
+    } catch (error) {
+      throw error
     }
   }
 
-  // Função para logout
-  const logout = () => {
-    user.value = null
-    localStorage.removeItem('user')
+  const verify = async () => {
+    try {
+      return await authStore.verify()
+    } catch (error) {
+      throw error
+    }
+  }
+
+  const isAuthenticated = () => {
+    return authStore.isAuthenticated()
   }
 
   return {
     user,
+    company,
+    token,
     isAdmin,
-    setUser,
+    isCompanyUser,
+    login,
     logout,
-    loadUser
+    verify,
+    isAuthenticated
   }
 } 

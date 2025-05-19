@@ -1,6 +1,7 @@
 export const webhooks = {
   companies: {
     list: import.meta.env.VITE_WEBHOOK_COMPANIES_LIST,
+    listone: import.meta.env.VITE_WEBHOOK_COMPANIES_LISTONE,
     create: import.meta.env.VITE_WEBHOOK_COMPANIES_CREATE,
     update: import.meta.env.VITE_WEBHOOK_COMPANIES_UPDATE,
     delete: import.meta.env.VITE_WEBHOOK_COMPANIES_DELETE
@@ -20,7 +21,7 @@ export const webhooks = {
   },
   validation: {
     list: import.meta.env.VITE_WEBHOOK_VALIDATION_LIST,
-    save: import.meta.env.VITE_WEBHOOK_VALIDATION_SAVE || 'https://n8nhook.grupoavantti.com.br/webhook/validation/save',
+    save: import.meta.env.VITE_WEBHOOK_VALIDATION_SAVE,
     delete: import.meta.env.VITE_WEBHOOK_VALIDATION_DELETE,
     validate: import.meta.env.VITE_WEBHOOK_VALIDATION
   },

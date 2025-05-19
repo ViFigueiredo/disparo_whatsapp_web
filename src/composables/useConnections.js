@@ -10,8 +10,9 @@ export function useConnections() {
   const connectionStore = useConnectionStore()
   const companiesStore = useCompaniesStore()
 
-  const connections = ref([])
-  const isLoading = ref(false)
+  const connections = computed(() => connectionStore.connections)
+  const isLoading = computed(() => connectionStore.isLoading)
+  const error = computed(() => connectionStore.error)
   const companyConnections = ref([])
 
   // Fetch functions
@@ -32,10 +33,8 @@ export function useConnections() {
 
   const fetchConnections = async () => {
     try {
-      isLoading.value = true
       await companiesStore.fetchCompanies()
       await connectionStore.fetchConnections()
-      connections.value = connectionStore.connections
       if (
         connections.value.length > 0 &&
         connections.value.some(conn => !conn.companyId)
@@ -45,15 +44,12 @@ export function useConnections() {
     } catch (error) {
       console.error('Erro ao carregar conexões:', error)
       toast.error('Erro ao carregar conexões')
-    } finally {
-      isLoading.value = false
     }
   }
 
   // Connection operations
   const createConnection = async (connectionData) => {
     try {
-
       // 1. Criar conexão na Evolution API
       const evolutionResponse = await api.post(webhooks.connections.create, {
         name: connectionData.name,
@@ -81,7 +77,6 @@ export function useConnections() {
 
   const updateConnectionCompany = async (connectionData) => {
     try {
-
       // Encontrar a conexão atual para obter o connection_id da Evolution
       const currentConnection = connections.value.find(conn => {
         return conn.id === connectionData.id
@@ -132,7 +127,9 @@ export function useConnections() {
   return {
     connections,
     isLoading,
+    error,
     companyConnections,
+    fetchCompanyConnections,
     fetchConnections,
     createConnection,
     updateConnectionCompany,
