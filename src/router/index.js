@@ -60,9 +60,9 @@ router.beforeEach((to, from, next) => {
   const requiresAuth = to.matched.some(record => record.meta.requiresAuth)
   const requiresAdmin = to.matched.some(record => record.meta.requiresAdmin)
 
-  if (requiresAuth && !authStore.isAuthenticated()) {
+  if (requiresAuth && !authStore.isAuthenticated) {
     next('/login')
-  } else if (to.path === '/login' && authStore.isAuthenticated()) {
+  } else if (to.path === '/login' && authStore.isAuthenticated) {
     next('/')
   } else if (requiresAdmin && !authStore.isAdmin) {
     next('/')

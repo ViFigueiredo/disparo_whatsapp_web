@@ -5,9 +5,9 @@ import api from '../config/axios'
 import { useRouter } from 'vue-router'
 
 export const useAuthStore = defineStore('auth', () => {
-  const user = ref(null)
+  const user = ref(JSON.parse(localStorage.getItem('user') || 'null'))
   const token = ref(localStorage.getItem('token'))
-  const company = ref(null)
+  const company = ref(JSON.parse(localStorage.getItem('company') || 'null'))
   const router = useRouter()
 
   const isAdmin = computed(() => user.value?.role === 'admin')
@@ -15,29 +15,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   const login = async (email, password) => {
     try {
-      // Verificar se é o admin padrão
-      if (email === import.meta.env.VITE_ADMIN_EMAIL && password === import.meta.env.VITE_ADMIN_PASSWORD) {
-        const adminData = {
-          user: {
-            id: 1,
-            name: 'Administrador',
-            email: email,
-            role: 'admin'
-          },
-          company: null,
-          token: 'admin-token'
-        }
-
-        user.value = adminData.user
-        company.value = adminData.company
-        token.value = adminData.token
-
-        localStorage.setItem('token', adminData.token)
-        localStorage.setItem('user', JSON.stringify(adminData.user))
-        return adminData
-      }
-
-      // Se não for admin, tenta login normal
+      // Tenta login normal pela API
       const response = await api.post(webhooks.auth.login, { email, password })
 
       if (!response.data || !Array.isArray(response.data) || response.data.length < 2) {
@@ -48,79 +26,53 @@ export const useAuthStore = defineStore('auth', () => {
       const tokenData = response.data[0]
       const userData = response.data[1]
 
-      if (!tokenData?.token || !userData?.id) {
+      // Verificar se os dados essenciais estão presentes (id pode ser 0, que é truthy aqui)
+      if (!tokenData?.token || userData?.id === undefined || userData?.id === null) {
         throw new Error('Dados de autenticação inválidos')
       }
 
-      // Atualizar estado
-      user.value = {
-        id: userData.id,
-        name: userData.name,
-        email: userData.email,
-        role: userData.role,
-        company_id: userData.company_id,
-        status: userData.status
-      }
+      // Armazenar dados no estado e no localStorage
+      user.value = userData
+      company.value = userData.company // Supondo que a empresa venha junto nos dados do usuário
       token.value = tokenData.token
 
-      // Salvar no localStorage
-      localStorage.setItem('token', tokenData.token)
+      localStorage.setItem('token', token.value)
       localStorage.setItem('user', JSON.stringify(user.value))
+      localStorage.setItem('company', JSON.stringify(company.value))
 
-      // Se tiver company_id, buscar dados da empresa
-      if (userData.company_id) {
-        try {
-          const companyResponse = await api.get(webhooks.companies.listone, {
-            id: userData.company_id
-          })
-          if (companyResponse.data) {
-            company.value = companyResponse.data
-            localStorage.setItem('company', JSON.stringify(companyResponse.data))
-          }
-        } catch (error) {
-          console.error('Erro ao buscar dados da empresa:', error)
-        }
-      }
+      return { user: user.value, company: company.value, token: token.value }
 
-      return {
-        user: user.value,
-        company: company.value,
-        token: token.value
-      }
     } catch (error) {
-      console.error('Erro ao fazer login:', error)
+      console.error('Erro no login:', error)
+      clearAuthData() // Limpa dados em caso de erro no login
       throw error
     }
   }
 
   const logout = async () => {
     try {
-      // Se for admin, apenas limpa os dados locais
-      if (token.value === 'admin-token') {
-        clearAuthData()
-        return
-      }
-
       // Para usuários normais, tenta fazer logout no servidor
       if (token.value) {
         try {
+          // Incluir user_id e token no body conforme endpoint de logout
           await api.post(webhooks.auth.logout, {
             user_id: user.value?.id,
             token: token.value
           })
         } catch (error) {
           console.error('Erro ao fazer logout no servidor:', error)
+          // Continuar mesmo com erro no servidor para limpar o estado local
         }
       }
 
-      // Limpa os dados de autenticação
+      // Limpa os dados de autenticação locais
       clearAuthData()
 
       // Redireciona para a página de login
       router.push('/login')
     } catch (error) {
       console.error('Erro ao fazer logout:', error)
-      // Mesmo com erro, limpa os dados locais
+      // Mesmo com erro, limpa os dados locais e redireciona
       clearAuthData()
       router.push('/login')
     }
@@ -137,51 +89,40 @@ export const useAuthStore = defineStore('auth', () => {
 
   const verify = async () => {
     try {
-      if (!token.value) return false
+      // Verifica se token e user.id existem (considerando 0 como válido)
+      if (!token.value || user.value?.id === undefined || user.value?.id === null) {
+        clearAuthData() // Limpa se não tiver token ou user id
+        return false
+      }
 
-      // Se for admin, retorna true
-      if (token.value === 'admin-token') return true
-
+      // Verifica a autenticação no servidor
       const response = await api.post(webhooks.auth.verify, {
         token: token.value,
         user_id: user.value?.id
       })
-      return response.data?.valid || false
+
+      // Se a verificação falhar no servidor
+      if (!response.data?.valid) {
+        clearAuthData() // Limpa dados se inválido
+        return false
+      }
+
+      return true // Autenticado e válido
+
     } catch (error) {
       console.error('Erro ao verificar autenticação:', error)
+      clearAuthData() // Limpa dados em caso de erro na verificação
       return false
     }
   }
 
-  const isAuthenticated = () => {
-    return !!token.value
-  }
-
-  const initializeFromStorage = () => {
-    try {
-      const storedUser = localStorage.getItem('user')
-      const storedCompany = localStorage.getItem('company')
-
-      if (storedUser) {
-        user.value = JSON.parse(storedUser)
-      }
-      if (storedCompany) {
-        company.value = JSON.parse(storedCompany)
-      }
-    } catch (error) {
-      console.error('Erro ao inicializar dados do localStorage:', error)
-      // Limpar dados inválidos
-      clearAuthData()
-    }
-  }
-
-  // Inicializar o estado do localStorage ao carregar a store
-  initializeFromStorage()
+  // Corrigido: verifica se token existe E user.id não é null/undefined
+  const isAuthenticated = computed(() => !!token.value && (user.value?.id !== undefined && user.value?.id !== null))
 
   return {
     user,
-    company,
     token,
+    company,
     isAdmin,
     isCompanyUser,
     login,
