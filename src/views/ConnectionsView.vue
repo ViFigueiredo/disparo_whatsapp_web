@@ -164,7 +164,6 @@ const handleCreateConnection = async (formData) => {
     const success = await createConnection(formData)
     if (success) {
       showCreateModal.value = false
-      toast.success('Conexão criada com sucesso!')
     }
   } catch (error) {
     console.error('Erro ao criar conexão:', error)

@@ -302,13 +302,13 @@ const startConnectionPolling = () => {
                 errorMessage.value = 'Erro ao verificar status da conexão após várias tentativas.';
             }
         }
-    }, 5000);
+    }, 40000);
 }
 
 // Cancelar conexão
 const cancelConnection = async () => {
     try {
-        // Mostrar estado de carregamento
+        // Mostrar estado de carregamento (opcional, pode remover se quiser)
         connectStep.value = 'initial'
 
         // Limpar intervalo de polling
@@ -317,17 +317,14 @@ const cancelConnection = async () => {
             connectionInterval.value = null
         }
 
-        // Chamar API para cancelar conexão
-        await connectionStore.cancelConnection(props.connection.name)
-
         // Fechar modal
         showConnectModal.value = false
-        toast.info('Conexão cancelada com sucesso')
-    } catch (error) {
-        console.error('Erro ao cancelar conexão:', error)
-        toast.error('Erro ao cancelar conexão: ' + (error.message || 'Erro desconhecido'))
 
-        // Fechar modal mesmo em caso de erro
+    } catch (error) {
+        // REMOVIDO: Tratamento de erro e toast
+        console.error('Erro ao cancelar conexão (frontend):', error) // Manter log interno para depuração
+
+        // Fechar modal mesmo em caso de erro no processamento frontend
         showConnectModal.value = false
     }
 }

@@ -66,7 +66,6 @@ export const useConnectionStore = defineStore('connection', {
 
     async connectConnection(connectionId) {
       try {
-        this.isLoading = true
         this.error = null
         const response = await api.post(webhooks.connections.connect, { id: String(connectionId) })
 
@@ -74,20 +73,16 @@ export const useConnectionStore = defineStore('connection', {
           throw new Error('Resposta inválida da API')
         }
 
-        await this.fetchConnections()
         return response.data
       } catch (error) {
         console.error('Erro ao conectar:', error)
         this.error = error.message || 'Erro ao conectar'
         throw error
-      } finally {
-        this.isLoading = false
       }
     },
 
     async deleteConnection(connection) {
       try {
-        this.isLoading = true
         this.error = null
         await api.delete(webhooks.connections.delete, {
           data: {
@@ -96,20 +91,16 @@ export const useConnectionStore = defineStore('connection', {
             status: connection.status
           }
         })
-        await this.fetchConnections()
         return true
       } catch (error) {
         console.error('Erro ao excluir conexão:', error)
         this.error = error.message || 'Erro ao excluir conexão'
         throw error
-      } finally {
-        this.isLoading = false
       }
     },
 
     async connectInstance(connectionName) {
       try {
-        this.isLoading = true
         this.error = null
         const response = await api.post(webhooks.connections.connect, { name: connectionName })
 
@@ -117,20 +108,16 @@ export const useConnectionStore = defineStore('connection', {
           throw new Error('Resposta inválida da API')
         }
 
-        await this.fetchConnections()
         return response.data
       } catch (error) {
         console.error('Erro ao conectar instância:', error)
         this.error = error.message || 'Erro ao conectar instância'
         throw error
-      } finally {
-        this.isLoading = false
       }
     },
 
     async checkConnectionStatus(connectionName) {
       try {
-        this.isLoading = true
         this.error = null
         const response = await api.post(webhooks.connections.state, { name: connectionName })
 
@@ -143,8 +130,23 @@ export const useConnectionStore = defineStore('connection', {
         console.error('Erro ao verificar estado da conexão:', error)
         this.error = error.message || 'Erro ao verificar estado da conexão'
         throw error
-      } finally {
-        this.isLoading = false
+      }
+    },
+
+    async cancelConnection(connectionName) {
+      try {
+        this.error = null
+        const response = await api.post(webhooks.connections.disconnect, { name: connectionName })
+
+        if (!response.data) {
+          throw new Error('Resposta inválida da API')
+        }
+
+        return response.data
+      } catch (error) {
+        console.error('Erro ao cancelar conexão:', error)
+        this.error = error.message || 'Erro ao cancelar conexão'
+        throw error
       }
     }
   }
