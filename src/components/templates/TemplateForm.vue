@@ -114,7 +114,7 @@ import { ref, onMounted, nextTick, computed, watch } from 'vue'
 import { webhooks } from '@/config/webhooks'
 import { useToast } from 'vue-toastification'
 import Dropdown from 'primevue/dropdown'
-import api from '@/services/api'
+import api from '@/config/axios'
 
 const toast = useToast()
 const loading = ref(false) // Novo estado para controlar o loading
@@ -229,17 +229,13 @@ const fetchBusinessTemplates = async (connection) => {
     }
 
     // Fazer a chamada para a API com o nome da conexão
-    const response = await fetch(`${webhooks.business.templates}?connection=${connection.name}`)
-
-    if (!response.ok) {
-      throw new Error(`Erro ao buscar templates de negócio: ${response.status}`)
-    }
-
-    const data = await response.json()
+    const response = await api.get(webhooks.business.templates, {
+      params: { connection: connection.name }
+    })
 
     // Processar os dados recebidos
-    if (Array.isArray(data)) {
-      businessTemplates.value = data.map(template => ({
+    if (Array.isArray(response.data)) {
+      businessTemplates.value = response.data.map(template => ({
         id: template.id || template.name,
         name: template.name,
         language: template.language || 'pt_BR',
@@ -249,13 +245,12 @@ const fetchBusinessTemplates = async (connection) => {
     } else {
       businessTemplates.value = []
     }
-
   } catch (error) {
-    console.error('Erro ao carregar templates de negócio:', error)
-    toast.error(`Erro ao carregar templates de negócio: ${error.message}`)
+    console.error('Erro ao buscar templates de negócio:', error)
+    toast.error('Erro ao carregar templates de negócio')
     businessTemplates.value = []
   } finally {
-    loading.value = false // Desativar loading independente do resultado
+    loading.value = false // Desativar loading
   }
 }
 

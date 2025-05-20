@@ -53,7 +53,10 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
+import { useAuthStore } from '../../stores/auth'
+
+const authStore = useAuthStore()
 
 const props = defineProps({
   connection: {
@@ -84,6 +87,13 @@ const formData = reactive({
   id: props.connection.id || '',
   name: props.connection.name || '',
   company_id: props.connection.company_id || ''
+})
+
+// Se não for admin, definir a empresa do usuário
+onMounted(() => {
+  if (!props.isAdmin) {
+    formData.company_id = authStore.user.company_id
+  }
 })
 
 const handleSubmit = () => {

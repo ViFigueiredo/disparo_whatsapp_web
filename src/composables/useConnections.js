@@ -2,6 +2,7 @@ import { ref, computed } from 'vue'
 import { useToast } from 'vue-toastification'
 import { useConnectionStore } from '../stores/connection'
 import { useCompaniesStore } from '../stores/companies'
+import { useAuthStore } from '../stores/auth'
 import api from '../config/axios'
 import { webhooks } from '../config/webhooks'
 
@@ -9,6 +10,7 @@ export function useConnections() {
   const toast = useToast()
   const connectionStore = useConnectionStore()
   const companiesStore = useCompaniesStore()
+  const authStore = useAuthStore()
 
   const connections = computed(() => connectionStore.connections)
   const isLoading = computed(() => connectionStore.isLoading)
@@ -37,7 +39,9 @@ export function useConnections() {
     try {
       await companiesStore.fetchCompanies()
       await connectionStore.fetchConnections()
+      // Mostrar aviso apenas para administradores
       if (
+        authStore.isAdmin &&
         connections.value.length > 0 &&
         connections.value.some(conn => !conn.companyId)
       ) {
@@ -52,6 +56,11 @@ export function useConnections() {
   // Connection operations
   const createConnection = async (connectionData) => {
     try {
+      // Se não for admin, usar a empresa do usuário logado
+      if (!authStore.isAdmin) {
+        connectionData.company_id = authStore.user.company_id
+      }
+
       // 1. Criar conexão na Evolution API
       const evolutionResponse = await api.post(webhooks.connections.create, {
         name: connectionData.name,
