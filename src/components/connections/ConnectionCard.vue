@@ -35,6 +35,10 @@
                     <span class="text-gray-500">Cliente:</span>
                     <span class="font-medium">{{ connection.clientName }}</span>
                 </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-500">Empresa:</span>
+                    <span class="font-medium">{{ connection.companyName }}</span>
+                </div>
                 <div v-if="connection.Chatwoot" class="flex justify-between">
                     <span class="text-gray-500">Chatwoot:</span>
                     <span class="font-medium">{{ connection.Chatwoot.enabled ? 'Ativado' : 'Desativado' }}</span>

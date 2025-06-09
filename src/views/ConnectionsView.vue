@@ -7,7 +7,7 @@
       @new-connection="openCreateConnectionModal" @refresh="refreshConnections" />
 
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      <div v-for="connection in filteredConnections" :key="connection.id" class="relative">
+      <div v-for="connection in connectionsWithCompanies" :key="connection.id" class="relative">
         <connection-card :connection="connection" :is-admin="isAdmin" @edit="openEditConnectionModal"
           @view-details="showConnectionDetails" @connection-updated="fetchConnections" />
       </div>
@@ -55,14 +55,19 @@ const toast = useToast()
 // Stores and composables
 const authStore = useAuthStore()
 const companiesStore = useCompaniesStore()
+const useConnectionsResult = useConnections()
+
+console.log('Resultado de useConnections():', useConnectionsResult)
+
 const {
   connections,
   isLoading,
   fetchConnections,
   createConnection,
   updateConnectionCompany,
-  getCompanyNameForConnection
-} = useConnections()
+  getCompanyNameForConnection,
+  connectionsWithCompanies
+} = useConnectionsResult
 
 // State
 const searchQuery = ref('')
@@ -85,7 +90,8 @@ const editConnection = ref({
 const isAdmin = computed(() => authStore.isAdmin)
 
 const filteredConnections = computed(() => {
-  let result = connections.value.filter(connection =>
+  // Garante que connectionsWithCompanies.value é um array antes de filtrar
+  let result = (connectionsWithCompanies.value || []).filter(connection => 
     connection && Object.keys(connection).length > 0 && connection.name
   )
 
@@ -117,7 +123,8 @@ const filteredConnections = computed(() => {
     const query = searchQuery.value.toLowerCase()
     result = result.filter(connection =>
       (connection.name || '').toLowerCase().includes(query) ||
-      (connection.profileName || '').toLowerCase().includes(query)
+      (connection.profileName || '').toLowerCase().includes(query) ||
+      (connection.companyName || '').toLowerCase().includes(query)
     )
   }
 
