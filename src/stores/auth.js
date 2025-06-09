@@ -4,10 +4,19 @@ import { webhooks } from '../config/webhooks'
 import api from '../config/axios'
 import { useRouter } from 'vue-router'
 
+function safeParse(item) {
+  try {
+    if (!item || item === 'undefined') return null
+    return JSON.parse(item)
+  } catch (e) {
+    return null
+  }
+}
+
 export const useAuthStore = defineStore('auth', () => {
-  const user = ref(JSON.parse(localStorage.getItem('user') || 'null'))
-  const token = ref(localStorage.getItem('token'))
-  const company = ref(JSON.parse(localStorage.getItem('company') || 'null'))
+  const user = ref(safeParse(localStorage.getItem('user')))
+  const token = ref(localStorage.getItem('token') || null)
+  const company = ref(safeParse(localStorage.getItem('company')))
   const router = useRouter()
 
   const isAdmin = computed(() => user.value?.role === 'admin')
