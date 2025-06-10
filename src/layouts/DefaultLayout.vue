@@ -6,7 +6,7 @@
         <div class="flex justify-between h-16">
           <!-- Logo -->
           <div class="flex-shrink-0 flex items-center w-48">
-            <h1 class="text-xl font-bold text-blue-600">Gestor Whatsapp</h1>
+            <img src="/logo.png" alt="Logo do Sistema" class="mx-auto w-auto max-h-12 object-contain" />
           </div>
 
           <!-- Links de navegação (centralizado) -->
@@ -15,8 +15,7 @@
               :class="[$route.path === '/' ? 'border-blue-500 text-gray-900' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700']">
               <i class="fas fa-home text-blue-600 text-lg"></i>
             </router-link>
-            <router-link v-if="authStore.isAdmin" to="/companies"
-              class="inline-flex items-center px-1 pt-1 border-b-2"
+            <router-link v-if="authStore.isAdmin" to="/companies" class="inline-flex items-center px-1 pt-1 border-b-2"
               :class="[$route.path === '/companies' ? 'border-blue-500 text-gray-900' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700']">
               <i class="fas fa-building text-yellow-500 text-lg"></i>
             </router-link>

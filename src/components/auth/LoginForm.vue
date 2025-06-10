@@ -26,20 +26,20 @@
       {{ error }}
     </div>
 
-    <div class="flex items-center justify-between">
-      <div class="text-sm">
-        <a href="#" @click.prevent="$emit('forgot-password')" class="font-medium text-blue-600 hover:text-blue-500">
-          Esqueceu sua senha?
-        </a>
-      </div>
-    </div>
-
     <div>
       <button type="submit" :disabled="isLoading"
         class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed">
         <i v-if="isLoading" class="fas fa-spinner fa-spin mr-2"></i>
         {{ isLoading ? 'Entrando...' : 'Entrar' }}
       </button>
+    </div>
+
+    <div class="flex items-center justify-center">
+      <div class="text-sm">
+        <a href="#" @click.prevent="$emit('forgot-password')" class="font-medium text-blue-600 hover:text-blue-500">
+          Esqueceu sua senha?
+        </a>
+      </div>
     </div>
   </form>
 </template>

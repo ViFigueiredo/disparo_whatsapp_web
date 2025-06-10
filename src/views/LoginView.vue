@@ -2,22 +2,14 @@
     <div class="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
         <div class="max-w-md w-full space-y-8">
             <div>
-                <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
-                    {{ appTitle }}
-                </h2>
-                <p class="mt-2 text-center text-sm text-gray-600">
+                <img src="/logo.png" alt="Logo do Sistema" class="mx-auto w-auto max-h-64 object-contain" />
+                <p class="mt-6 text-center text-sm text-gray-600">
                     Faça login em sua conta
                 </p>
             </div>
 
-            <login-form
-                v-model:email="email"
-                v-model:password="password"
-                :is-loading="isLoading"
-                :error="error"
-                @submit="handleSubmit"
-                @forgot-password="handleForgotPassword"
-            />
+            <login-form v-model:email="email" v-model:password="password" :is-loading="isLoading" :error="error"
+                @submit="handleSubmit" @forgot-password="handleForgotPassword" />
         </div>
     </div>
 </template>
