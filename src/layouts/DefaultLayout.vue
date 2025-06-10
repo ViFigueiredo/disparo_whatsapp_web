@@ -12,27 +12,33 @@
           <!-- Links de navegação (centralizado) -->
           <div class="flex-1 flex items-center justify-center space-x-12">
             <router-link to="/" class="inline-flex items-center px-1 pt-1 border-b-2"
-              :class="[$route.path === '/' ? 'border-blue-500 text-gray-900' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700']">
+              :class="[$route.path === '/' ? 'border-blue-500 text-gray-900' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700']"
+              title="Página Inicial">
               <i class="fas fa-home text-blue-600 text-lg"></i>
             </router-link>
             <router-link v-if="authStore.isAdmin" to="/companies" class="inline-flex items-center px-1 pt-1 border-b-2"
-              :class="[$route.path === '/companies' ? 'border-blue-500 text-gray-900' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700']">
+              :class="[$route.path === '/companies' ? 'border-blue-500 text-gray-900' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700']"
+              title="Gerenciar Empresas">
               <i class="fas fa-building text-yellow-500 text-lg"></i>
             </router-link>
             <router-link v-if="authStore.isAdmin" to="/users" class="inline-flex items-center px-1 pt-1 border-b-2"
-              :class="[$route.path === '/users' ? 'border-blue-500 text-gray-900' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700']">
+              :class="[$route.path === '/users' ? 'border-blue-500 text-gray-900' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700']"
+              title="Gerenciar Usuários">
               <i class="fas fa-user-cog text-pink-500 text-lg"></i>
             </router-link>
             <router-link to="/connections" class="inline-flex items-center px-1 pt-1 border-b-2"
-              :class="[$route.path === '/connections' ? 'border-blue-500 text-gray-900' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700']">
+              :class="[$route.path === '/connections' ? 'border-blue-500 text-gray-900' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700']"
+              title="Gerenciar Conexões">
               <i class="fas fa-plug text-blue-500 text-lg"></i>
             </router-link>
             <router-link to="/templates" class="inline-flex items-center px-1 pt-1 border-b-2"
-              :class="[$route.path === '/templates' ? 'border-blue-500 text-gray-900' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700']">
+              :class="[$route.path === '/templates' ? 'border-blue-500 text-gray-900' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700']"
+              title="Gerenciar Templates">
               <i class="fas fa-file-alt text-green-500 text-lg"></i>
             </router-link>
             <router-link to="/leads" class="inline-flex items-center px-1 pt-1 border-b-2"
-              :class="[$route.path === '/leads' ? 'border-blue-500 text-gray-900' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700']">
+              :class="[$route.path === '/leads' ? 'border-blue-500 text-gray-900' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700']"
+              title="Gerenciar Leads">
               <i class="fas fa-users text-purple-500 text-lg"></i>
             </router-link>
           </div>
