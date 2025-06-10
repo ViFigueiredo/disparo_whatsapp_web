@@ -1,153 +1,111 @@
-# Sistema de Disparo WhatsApp Web
+# Disparo de WhatsApp Web
 
-Sistema para gerenciamento de disparos de mensagens via WhatsApp, com suporte a múltiplas conexões, templates e validação de números.
+Este projeto é uma aplicação web para gerenciamento e disparo de mensagens de WhatsApp, incluindo validação de leads e gerenciamento de templates.
 
-## 🏗️ Arquitetura
+## Tecnologias Envolvidas
 
-O projeto é construído em Vue.js 3 com as seguintes tecnologias principais:
+O projeto utiliza as seguintes tecnologias e bibliotecas:
 
-- **Vue 3**: Framework frontend principal
-- **Vite**: Build tool e servidor de desenvolvimento
-- **Tailwind CSS**: Framework CSS para estilização
-- **PostgreSQL**: Banco de dados relacional
-- **n8n**: Plataforma de automação para webhooks
+*   **Vue.js 3**: Framework progressivo para construção de interfaces de usuário.
+*   **Pinia**: A biblioteca de gerenciamento de estado para Vue.js, utilizada para gerenciar o estado da aplicação de forma centralizada.
+*   **Vue Router**: Roteador oficial para Vue.js, para navegação entre as diferentes páginas da aplicação.
+*   **Vite**: Ferramenta de build rápida e otimizada para desenvolvimento web moderno.
+*   **Axios**: Cliente HTTP baseado em Promises para fazer requisições a APIs externas.
+*   **PrimeVue**: Biblioteca de componentes UI para Vue.js, oferecendo um conjunto rico de componentes prontos para uso.
+*   **Vue-Toastification**: Biblioteca para exibir notificações de toast de forma fácil.
+*   **Font Awesome**: Biblioteca de ícones (através de `@fortawesome/fontawesome-free`).
+*   **Tailwind CSS**: Framework CSS para estilização rápida e responsiva (com `@tailwindcss/forms`, `autoprefixer`, `postcss`).
+*   **@vueuse/core**: Coleção de utilitários Vue Composables.
 
-### Estrutura de Diretórios
+## Configuração do Ambiente
 
-```
-src/
-├── assets/          # Recursos estáticos
-├── components/      # Componentes Vue reutilizáveis
-│   ├── common/      # Componentes base (Button, Modal, etc)
-│   ├── connections/ # Componentes de conexões WhatsApp
-│   ├── templates/   # Componentes de templates
-│   └── validation/  # Componentes de validação
-├── composables/     # Composables Vue (lógica reutilizável)
-├── config/         # Configurações (webhooks, etc)
-├── views/          # Componentes de página
-└── App.vue         # Componente raiz
-```
+1.  **Node.js e Yarn**: Certifique-se de ter o Node.js (versão 18.x ou superior) e o Yarn instalados em sua máquina.
+2.  **Variáveis de Ambiente**: Crie um arquivo `.env` na raiz do projeto, baseado no `.env.example`. Preencha as variáveis com as URLs dos webhooks do seu ambiente n8n e outras configurações necessárias.
 
-## 🔗 Conexões e Integrações
+    ```bash
+    cp .env.example .env
+    ```
 
-### Banco de Dados
+## Como Rodar em Localhost
 
-O sistema utiliza PostgreSQL com as seguintes tabelas principais:
+Para iniciar a aplicação em modo de desenvolvimento local:
 
-- `companies`: Empresas (modelo SaaS)
-- `users`: Usuários do sistema
-- `templates`: Templates de mensagem
-- `validation_lists`: Listas de validação
-- `validation_leads`: Leads para validação
-- `company_connections`: Conexões WhatsApp por empresa
+1.  **Instalar Dependências**:
 
-### Webhooks (n8n)
+    ```bash
+    yarn install
+    ```
 
-As integrações são gerenciadas via n8n, com endpoints definidos em `.env`:
+2.  **Iniciar o Servidor de Desenvolvimento**:
 
-#### Conexões WhatsApp
-- Lista de conexões: `/webhook/instancias`
-- Criar conexão: `/webhook/instancias/create`
-- QR Code: `/webhook/instancias/qrcode`
-- Estado: `/webhook/instancias/state`
-- Deletar: `/webhook/instancias/delete`
+    ```bash
+    yarn dev
+    ```
 
-#### Templates
-- Templates Web: `/webhook/templates/list`
-- Templates Cloud: `/webhook/templates/cloud`
-- Operações CRUD: `/webhook/templates/{create|update|delete}`
-- Disparo: `/webhook/disparo`
+    A aplicação estará disponível em `http://localhost:5173` (ou outra porta disponível).
 
-#### Validação
-- Listas: `/webhook/listas`
-- Validador: `/webhook/validador`
-- Operações: `/webhook/listas/{create|delete}`
+## Deploy com Docker
 
-#### Empresas (SaaS)
-- CRUD: `/webhook/empresas/{list|create|update|delete}`
-- Conexões: `/webhook/empresas/conexoes/{create|list|update|delete}`
+Este projeto pode ser facilmente empacotado em uma imagem Docker para deploy consistente em qualquer ambiente.
 
-## 🔐 Autenticação e Autorização
+### Pré-requisitos
 
-O sistema implementa um modelo de autenticação baseado em roles:
+*   **Docker**: Certifique-se de ter o Docker instalado e em execução em sua máquina.
 
-- **Admin**: Acesso total ao sistema
-- **User**: Acesso limitado aos recursos da própria empresa
+### Construindo a Imagem Docker
 
-### Fluxo de Autenticação
-1. Login via endpoint `/webhook/auth/login`
-2. Armazenamento de token e dados do usuário no localStorage
-3. Verificação de permissões via `useAuth` composable
+Para construir a imagem Docker da sua aplicação:
 
-## 💼 Modelo SaaS
+1.  **Compilar o Projeto para Produção**:
 
-O sistema é multi-tenant, onde:
+    ```bash
+    yarn build
+    ```
 
-1. Cada empresa tem:
-   - Seus próprios usuários
-   - Suas próprias conexões WhatsApp
-   - Seus próprios templates
-   - Suas próprias listas de validação
+2.  **Construir a Imagem Docker**:
 
-2. Isolamento de dados:
-   - Queries filtradas por `company_id`
-   - Validações de acesso em cada operação
-   - Templates vinculados à empresa
+    ```bash
+    docker build -t disparo-whatsapp-web .
+    ```
 
-## 🚀 Como Executar
+    *(Onde `disparo-whatsapp-web` é o nome da sua imagem local. Você pode escolher um nome diferente.)*
 
-1. Clone o repositório
-2. Instale as dependências:
-   ```bash
-   yarn install
-   ```
+### Rodando a Imagem Docker Localmente
 
-3. Configure o arquivo `.env`:
-   ```env
-   VITE_API_BASE_URL=http://localhost:3000
-   # Configure os demais webhooks conforme necessário
-   ```
+Para rodar a imagem Docker que você acabou de construir:
 
-4. Execute o servidor de desenvolvimento:
-   ```bash
-   yarn dev
-   ```
-
-## 📦 Build e Deploy
-
-Para build de produção:
 ```bash
-yarn build
+docker run -p 80:80 disparo-whatsapp-web
 ```
 
-Os arquivos serão gerados na pasta `dist/`.
+    A aplicação estará acessível em `http://localhost`.
 
-## 🔧 Configuração
+### Publicando a Imagem no Docker Hub
 
-### Variáveis de Ambiente
+Para compartilhar sua imagem Docker e torná-la disponível para outros ambientes ou serviços de orquestração (como Kubernetes), você pode publicá-la no Docker Hub.
 
-Principais variáveis que precisam ser configuradas:
+1.  **Faça Login no Docker Hub**:
 
-- `VITE_API_BASE_URL`: URL base da API
-- `VITE_ADMIN_EMAIL`: Email do admin padrão
-- `VITE_ADMIN_PASSWORD`: Senha do admin padrão
-- Webhooks do n8n (ver arquivo `.env.example`)
+    ```bash
+    docker login
+    ```
 
-### Banco de Dados
+    Será solicitado seu usuário e senha do Docker Hub.
 
-Execute as migrations do arquivo `tables.sql` para criar a estrutura do banco.
+2.  **Faça o Tag da Imagem**:
 
-## 🤝 Contribuindo
+    Você precisa "taggear" sua imagem com seu nome de usuário do Docker Hub e o nome do repositório (ex: `seu_usuario/disparo-whatsapp-web`).
 
-1. Faça o fork do projeto
-2. Crie uma branch para sua feature (`git checkout -b feature/AmazingFeature`)
-3. Commit suas mudanças (`git commit -m 'Add some AmazingFeature'`)
-4. Push para a branch (`git push origin feature/AmazingFeature`)
-5. Abra um Pull Request
+    ```bash
+    docker tag disparo-whatsapp-web seu_usuario/disparo-whatsapp-web:latest
+    ```
 
-## 📝 Notas
+    *(Substitua `seu_usuario` pelo seu nome de usuário do Docker Hub e `disparo-whatsapp-web` pelo nome desejado para o repositório.)*
 
-- O sistema usa o n8n como middleware para todas as operações
-- Templates podem ser do WhatsApp Web ou WhatsApp Business API
-- Validação de números é feita em lote
-- Sistema preparado para múltiplas conexões por empresa
+3.  **Envie a Imagem para o Docker Hub**:
+
+    ```bash
+    docker push seu_usuario/disparo-whatsapp-web:latest
+    ```
+
+    Sua imagem estará agora disponível publicamente (ou privadamente, dependendo da configuração do repositório no Docker Hub).

@@ -1,6 +1,6 @@
 import { computed, ref } from 'vue'
 import { useToast } from 'vue-toastification'
-import { useValidationStore } from '../stores/validation'
+import { useValidationStore } from '../stores/leads'
 import { webhooks } from '../config/webhooks'
 import api from '../config/axios'
 
@@ -9,17 +9,24 @@ export function useLeads() {
     const validationStore = useValidationStore()
     const localLoading = ref(false)
 
-    const validationLists = computed(() => validationStore.lists)
-    const leads = computed(() => validationStore.leads)
+    const validationLists = computed(() => validationStore.formattedLists)
+    const leads = computed(() => validationStore.formattedLeads)
     const isLoading = computed(() => validationStore.isLoading || localLoading.value)
     const error = computed(() => validationStore.error)
+    const lastOperation = computed(() => validationStore.lastOperation)
+
+    const handleError = (error, message) => {
+        console.error(message, error)
+        toast.error(message + (error.message ? `: ${error.message}` : ''))
+        return false
+    }
 
     const fetchValidationLists = async () => {
         try {
             await validationStore.fetchLists()
+            return true
         } catch (error) {
-            toast.error('Erro ao carregar listas de validação')
-            throw error
+            return handleError(error, 'Erro ao carregar listas de validação')
         }
     }
 
@@ -28,12 +35,10 @@ export function useLeads() {
             localLoading.value = true
             const response = await api.post(webhooks.validation.validate, { leads })
 
-            // Verificar se a resposta é um array
             if (!Array.isArray(response.data)) {
                 throw new Error('Formato de resposta inválido')
             }
 
-            // Processar cada item do array de resposta
             const validatedLeads = response.data.map((item, index) => {
                 if (!item.success || !Array.isArray(item.data) || item.data.length === 0) {
                     return {
@@ -53,9 +58,7 @@ export function useLeads() {
 
             return validatedLeads
         } catch (error) {
-            console.error('Erro na validação:', error)
-            toast.error(error.message || 'Erro ao validar números')
-            return []
+            return handleError(error, 'Erro ao validar números')
         } finally {
             localLoading.value = false
         }
@@ -65,13 +68,10 @@ export function useLeads() {
         try {
             localLoading.value = true
 
-            // Validar dados antes de enviar
-            if (!listData || !listData.name || !Array.isArray(listData.leads)) {
-                console.error('Dados inválidos para salvar:', listData)
+            if (!validationStore.validateListData(listData)) {
                 throw new Error('Dados inválidos para salvar a lista')
             }
 
-            // Formatar dados para envio
             const payload = {
                 name: listData.name,
                 leads: listData.leads.map(lead => ({
@@ -85,9 +85,6 @@ export function useLeads() {
                 invalid_leads: listData.leads.filter(lead => !lead.exists).length,
                 company_id: listData.company_id || undefined
             }
-
-            console.log('Payload completo:', payload)
-            console.log('Company ID:', payload.company_id)
 
             const response = await fetch(webhooks.validation.save, {
                 method: 'POST',
@@ -105,9 +102,7 @@ export function useLeads() {
             toast.success('Lista salva com sucesso!')
             return true
         } catch (error) {
-            console.error('Erro ao salvar lista:', error)
-            toast.error('Erro ao salvar lista: ' + (error.message || 'Erro desconhecido'))
-            return false
+            return handleError(error, 'Erro ao salvar lista')
         } finally {
             localLoading.value = false
         }
@@ -132,9 +127,7 @@ export function useLeads() {
             toast.success('Lista excluída com sucesso!')
             return true
         } catch (error) {
-            console.error('Erro ao excluir lista:', error)
-            toast.error('Erro ao excluir lista: ' + (error.message || 'Erro desconhecido'))
-            return false
+            return handleError(error, 'Erro ao excluir lista')
         } finally {
             localLoading.value = false
         }
@@ -142,7 +135,6 @@ export function useLeads() {
 
     const downloadValidatedCSV = (leads) => {
         try {
-            // Criar cabeçalho
             const headers = ['Nome', 'Número', 'Status']
             const csvContent = [
                 headers.join(','),
@@ -153,7 +145,6 @@ export function useLeads() {
                 ].join(','))
             ].join('\n')
 
-            // Criar blob e link para download
             const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
             const link = document.createElement('a')
             const url = URL.createObjectURL(blob)
@@ -164,8 +155,7 @@ export function useLeads() {
             link.click()
             document.body.removeChild(link)
         } catch (error) {
-            console.error('Erro ao gerar CSV:', error)
-            toast.error('Erro ao gerar arquivo CSV')
+            handleError(error, 'Erro ao gerar arquivo CSV')
         }
     }
 
@@ -174,6 +164,7 @@ export function useLeads() {
         leads,
         isLoading,
         error,
+        lastOperation,
         fetchValidationLists,
         validateLeads,
         saveValidationList,

@@ -6,16 +6,23 @@ export function useCompanies() {
     const companiesStore = useCompaniesStore()
     const toast = useToast()
 
-    const companies = computed(() => companiesStore.companies)
+    const companies = computed(() => companiesStore.formattedCompanies)
     const isLoading = computed(() => companiesStore.loading)
     const error = computed(() => companiesStore.error)
+    const lastOperation = computed(() => companiesStore.lastOperation)
+
+    const handleError = (error, message) => {
+        console.error(message, error)
+        toast.error(message)
+        return false
+    }
 
     const fetchCompanies = async () => {
         try {
             await companiesStore.fetchCompanies()
+            return true
         } catch (error) {
-            toast.error('Erro ao carregar lista de empresas')
-            throw error
+            return handleError(error, 'Erro ao carregar lista de empresas')
         }
     }
 
@@ -25,8 +32,7 @@ export function useCompanies() {
             toast.success('Empresa criada com sucesso!')
             return true
         } catch (error) {
-            toast.error('Erro ao criar empresa')
-            return false
+            return handleError(error, 'Erro ao criar empresa')
         }
     }
 
@@ -36,8 +42,7 @@ export function useCompanies() {
             toast.success('Empresa atualizada com sucesso!')
             return true
         } catch (error) {
-            toast.error('Erro ao atualizar empresa')
-            return false
+            return handleError(error, 'Erro ao atualizar empresa')
         }
     }
 
@@ -47,8 +52,7 @@ export function useCompanies() {
             toast.success('Empresa excluída com sucesso!')
             return true
         } catch (error) {
-            toast.error('Erro ao excluir empresa')
-            return false
+            return handleError(error, 'Erro ao excluir empresa')
         }
     }
 
@@ -61,6 +65,7 @@ export function useCompanies() {
         companies,
         isLoading,
         error,
+        lastOperation,
         fetchCompanies,
         createCompany,
         updateCompany,

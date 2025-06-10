@@ -1,10 +1,6 @@
 import { defineStore } from 'pinia'
 import axios from 'axios'
-
-const WEBHOOK_COMPANIES_LIST = import.meta.env.VITE_WEBHOOK_COMPANIES_LIST
-const WEBHOOK_COMPANIES_CREATE = import.meta.env.VITE_WEBHOOK_COMPANIES_CREATE
-const WEBHOOK_COMPANIES_UPDATE = import.meta.env.VITE_WEBHOOK_COMPANIES_UPDATE
-const WEBHOOK_COMPANIES_DELETE = import.meta.env.VITE_WEBHOOK_COMPANIES_DELETE
+import { webhooks } from '../config/webhooks'
 
 const formatCNPJ = (cnpj) => {
     if (!cnpj) return ''
@@ -34,18 +30,17 @@ export const useCompaniesStore = defineStore('companies', {
 
     actions: {
         async fetchCompanies() {
-            if (this.loading) return // Previne múltiplas chamadas simultâneas
+            if (this.loading) return
 
             const requestId = ++this.currentRequestId
             this.loading = true
             this.error = null
 
             try {
-                const response = await axios.get(WEBHOOK_COMPANIES_LIST)
+                const response = await axios.get(webhooks.companies.list)
 
-                // Verifica se esta é a resposta da requisição mais recente
                 if (requestId !== this.currentRequestId) {
-                    return // Descarta resultados de requisições antigas
+                    return
                 }
 
                 if (Array.isArray(response.data)) {
@@ -72,7 +67,7 @@ export const useCompaniesStore = defineStore('companies', {
         },
 
         async createCompany(company) {
-            if (this.loading) return // Previne múltiplas chamadas simultâneas
+            if (this.loading) return
 
             const requestId = ++this.currentRequestId
             this.loading = true
@@ -88,10 +83,10 @@ export const useCompaniesStore = defineStore('companies', {
                     status: company.status || 'active'
                 }
 
-                const response = await axios.post(WEBHOOK_COMPANIES_CREATE, companyData)
+                const response = await axios.post(webhooks.companies.create, companyData)
 
                 if (requestId === this.currentRequestId) {
-                    await this.fetchCompanies() // Atualiza a lista após criar
+                    await this.fetchCompanies()
                 }
                 return response.data
             } catch (error) {
@@ -109,7 +104,7 @@ export const useCompaniesStore = defineStore('companies', {
         },
 
         async updateCompany(company) {
-            if (this.loading) return // Previne múltiplas chamadas simultâneas
+            if (this.loading) return
             if (!company.id) throw new Error('ID da empresa é obrigatório para atualização')
 
             const requestId = ++this.currentRequestId
@@ -127,10 +122,10 @@ export const useCompaniesStore = defineStore('companies', {
                     status: company.status || 'active'
                 }
 
-                const response = await axios.post(WEBHOOK_COMPANIES_UPDATE, companyData)
+                const response = await axios.post(webhooks.companies.update, companyData)
 
                 if (requestId === this.currentRequestId) {
-                    await this.fetchCompanies() // Atualiza a lista após atualizar
+                    await this.fetchCompanies()
                 }
                 return response.data
             } catch (error) {
@@ -148,7 +143,7 @@ export const useCompaniesStore = defineStore('companies', {
         },
 
         async deleteCompany(companyId) {
-            if (this.loading) return // Previne múltiplas chamadas simultâneas
+            if (this.loading) return
 
             const requestId = ++this.currentRequestId
             this.loading = true
@@ -156,9 +151,9 @@ export const useCompaniesStore = defineStore('companies', {
             this.lastOperation = 'delete'
 
             try {
-                await axios.post(WEBHOOK_COMPANIES_DELETE, { id: companyId })
+                await axios.post(webhooks.companies.delete, { id: companyId })
                 if (requestId === this.currentRequestId) {
-                    await this.fetchCompanies() // Atualiza a lista após deletar
+                    await this.fetchCompanies()
                 }
             } catch (error) {
                 if (requestId === this.currentRequestId) {

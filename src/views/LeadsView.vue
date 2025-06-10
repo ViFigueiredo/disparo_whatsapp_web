@@ -30,7 +30,7 @@
               </th>
             </tr>
           </thead>
-          <tbody class="bg-white divide-y divide-gray-200">
+          <tbody v-if="filteredValidationLists.length > 0" class="bg-white divide-y divide-gray-200">
             <tr v-for="list in filteredValidationLists" :key="list.id" class="hover:bg-gray-50">
               <td class="px-6 py-4 whitespace-nowrap text-left">
                 <div class="text-sm font-medium text-gray-900">{{ list.name }}</div>
@@ -63,6 +63,13 @@
               </td>
             </tr>
           </tbody>
+          <tbody v-else class="bg-white divide-y divide-gray-200">
+            <tr>
+              <td colspan="6" class="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-500">
+                Nenhuma lista de validação encontrada.
+              </td>
+            </tr>
+          </tbody>
         </table>
       </div>
     </div>
@@ -82,7 +89,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useLeads } from '../composables/useLeads'
 import { useAuth } from '../composables/useAuth'
 import { webhooks } from '../config/webhooks'
@@ -145,6 +152,11 @@ const filteredValidationLists = computed(() => {
 
   return filtered
 })
+
+// Debugging: Watch filteredValidationLists
+watch(filteredValidationLists, (newValue) => {
+  console.log('filteredValidationLists changed:', newValue);
+}, { immediate: true });
 
 // Methods
 const formatDate = (date) => {
@@ -463,13 +475,10 @@ const downloadTemplate = () => {
 
 // Lifecycle
 onMounted(async () => {
-  try {
-    await fetchCompanies()
-    await fetchValidationLists()
-  } catch (error) {
-    console.error('Erro ao carregar dados:', error)
-    toast.error('Erro ao carregar dados')
-  }
+  console.log('LeadsView mounted. Initializing fetchValidationLists...');
+  await fetchValidationLists();
+  console.log('fetchValidationLists completed. Current filteredValidationLists:', filteredValidationLists.value);
+  fetchCompanies();
 })
 </script>
 

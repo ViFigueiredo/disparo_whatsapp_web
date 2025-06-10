@@ -16,23 +16,19 @@ export const useConnectionStore = defineStore('connection', {
         this.error = null
         const response = await api.get(webhooks.connections.list)
 
-        // Verificar se os dados são válidos
         if (!response.data) {
           throw new Error('Resposta inválida da API')
         }
 
-        if (Array.isArray(response.data)) {
-          this.connections = response.data.filter(connection =>
-            connection && connection.id && Object.keys(connection).length > 1
-          ).map(connection => ({
-            ...connection,
-            id: String(connection.id), // Garantir que o ID seja string
-            companyId: connection.companyId ? String(connection.companyId) : null
-          }))
-        } else {
-          console.warn('Formato de dados inválido recebido da API de conexões')
-          this.connections = []
-        }
+        this.connections = Array.isArray(response.data) 
+          ? response.data
+              .filter(connection => connection && connection.id && Object.keys(connection).length > 1)
+              .map(connection => ({
+                ...connection,
+                id: String(connection.id),
+                companyId: connection.companyId ? String(connection.companyId) : null
+              }))
+          : []
       } catch (error) {
         console.error('Erro ao buscar conexões:', error)
         this.error = error.message || 'Erro ao buscar conexões'
@@ -91,6 +87,7 @@ export const useConnectionStore = defineStore('connection', {
             status: connection.status
           }
         })
+        await this.fetchConnections()
         return true
       } catch (error) {
         console.error('Erro ao excluir conexão:', error)

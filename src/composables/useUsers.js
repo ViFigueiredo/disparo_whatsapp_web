@@ -1,87 +1,80 @@
-import { ref } from 'vue'
+import { computed } from 'vue'
 import { useToast } from 'vue-toastification'
-import api from '../config/axios'
-import { webhooks } from '../config/webhooks'
+import { useUsersStore } from '../stores/users'
+import { useCompaniesStore } from '../stores/companies'
 
 export function useUsers() {
     const toast = useToast()
-    const users = ref([])
-    const companies = ref([])
-    const isLoading = ref(false)
+    const usersStore = useUsersStore()
+    const companiesStore = useCompaniesStore()
+
+    const users = computed(() => usersStore.formattedUsers)
+    const isLoading = computed(() => usersStore.isLoading)
+    const error = computed(() => usersStore.error)
+    const lastOperation = computed(() => usersStore.lastOperation)
+    const companies = computed(() => companiesStore.formattedCompanies)
+
+    const handleError = (error, message) => {
+        console.error(message, error)
+        toast.error(message + (error.message ? `: ${error.message}` : ''))
+        return false
+    }
 
     const fetchUsers = async () => {
         try {
-            isLoading.value = true
-            const response = await api.get(webhooks.users.list)
-            users.value = Array.isArray(response.data) ? response.data : []
+            await usersStore.fetchUsers()
+            return true
         } catch (error) {
-            console.error('Erro ao carregar usuários:', error)
-            toast.error('Erro ao carregar usuários')
-            users.value = []
-        } finally {
-            isLoading.value = false
+            return handleError(error, 'Erro ao carregar usuários')
         }
     }
 
     const fetchCompanies = async () => {
         try {
-            isLoading.value = true
-            const response = await api.get(webhooks.companies.list)
-            companies.value = Array.isArray(response.data) ? response.data : []
+            await companiesStore.fetchCompanies()
+            return true
         } catch (error) {
-            console.error('Erro ao carregar empresas:', error)
-            toast.error('Erro ao carregar empresas')
-            companies.value = []
-        } finally {
-            isLoading.value = false
+            return handleError(error, 'Erro ao carregar empresas')
         }
     }
 
     const createUser = async (userData) => {
         try {
-            isLoading.value = true
-            await api.post(webhooks.users.create, userData)
+            await usersStore.createUser(userData)
             toast.success('Usuário criado com sucesso!')
-            await fetchUsers()
             return true
         } catch (error) {
-            console.error('Erro ao criar usuário:', error)
-            toast.error('Erro ao criar usuário')
-            return false
-        } finally {
-            isLoading.value = false
+            return handleError(error, 'Erro ao criar usuário')
         }
     }
 
     const updateUser = async (userData) => {
         try {
-            isLoading.value = true
-            await api.post(webhooks.users.update, userData)
+            await usersStore.updateUser(userData)
             toast.success('Usuário atualizado com sucesso!')
-            await fetchUsers()
             return true
         } catch (error) {
-            console.error('Erro ao atualizar usuário:', error)
-            toast.error('Erro ao atualizar usuário')
-            return false
-        } finally {
-            isLoading.value = false
+            return handleError(error, 'Erro ao atualizar usuário')
         }
     }
 
     const deleteUser = async (userId) => {
         try {
-            isLoading.value = true
-            await api.post(webhooks.users.delete, { id: userId })
+            await usersStore.deleteUser(userId)
             toast.success('Usuário excluído com sucesso!')
-            await fetchUsers()
             return true
         } catch (error) {
-            console.error('Erro ao excluir usuário:', error)
-            toast.error('Erro ao excluir usuário')
-            return false
-        } finally {
-            isLoading.value = false
+            return handleError(error, 'Erro ao excluir usuário')
+        }
+    }
+
+    const resetPassword = async (userId) => {
+        try {
+            await usersStore.resetPassword(userId)
+            toast.success('Senha resetada com sucesso!')
+            return true
+        } catch (error) {
+            return handleError(error, 'Erro ao resetar senha')
         }
     }
 
@@ -89,10 +82,13 @@ export function useUsers() {
         users,
         companies,
         isLoading,
+        error,
+        lastOperation,
         fetchUsers,
         fetchCompanies,
         createUser,
         updateUser,
-        deleteUser
+        deleteUser,
+        resetPassword
     }
 } 

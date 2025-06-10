@@ -8,16 +8,23 @@ export function useTemplates() {
   const toast = useToast()
   const templateStore = useTemplateStore()
 
-  const templates = computed(() => templateStore.templates)
+  const templates = computed(() => templateStore.formattedTemplates)
   const isLoading = computed(() => templateStore.isLoading)
   const error = computed(() => templateStore.error)
+  const lastOperation = computed(() => templateStore.lastOperation)
+
+  const handleError = (error, message) => {
+    console.error(message, error)
+    toast.error(message + (error.message ? `: ${error.message}` : ''))
+    return false
+  }
 
   const fetchTemplates = async () => {
     try {
       await templateStore.fetchTemplates()
+      return true
     } catch (error) {
-      toast.error('Erro ao carregar templates')
-      throw error
+      return handleError(error, 'Erro ao carregar templates')
     }
   }
 
@@ -27,8 +34,7 @@ export function useTemplates() {
       toast.success('Template criado com sucesso!')
       return true
     } catch (error) {
-      toast.error('Erro ao criar template')
-      return false
+      return handleError(error, 'Erro ao criar template')
     }
   }
 
@@ -38,8 +44,7 @@ export function useTemplates() {
       toast.success('Template atualizado com sucesso!')
       return true
     } catch (error) {
-      toast.error('Erro ao atualizar template')
-      return false
+      return handleError(error, 'Erro ao atualizar template')
     }
   }
 
@@ -49,20 +54,17 @@ export function useTemplates() {
       toast.success('Template excluído com sucesso!')
       return true
     } catch (error) {
-      toast.error('Erro ao excluir template')
-      return false
+      return handleError(error, 'Erro ao excluir template')
     }
   }
 
   const executeTemplate = async (templateData) => {
     try {
-      const response = await api.post(webhooks.templates.execute, templateData)
+      const response = await templateStore.executeTemplate(templateData)
       toast.success('Template executado com sucesso!')
-      return response.data
+      return response
     } catch (error) {
-      console.error('Erro ao executar template:', error)
-      toast.error('Erro ao executar template: ' + (error.message || 'Erro desconhecido'))
-      return false
+      return handleError(error, 'Erro ao executar template')
     }
   }
 
@@ -71,9 +73,7 @@ export function useTemplates() {
       const response = await api.get(`${webhooks.business.templates}?connection=${connection}`)
       return response.data
     } catch (error) {
-      console.error('Erro ao buscar templates de negócio:', error)
-      toast.error('Erro ao buscar templates de negócio')
-      return []
+      return handleError(error, 'Erro ao buscar templates de negócio')
     }
   }
 
@@ -81,6 +81,7 @@ export function useTemplates() {
     templates,
     isLoading,
     error,
+    lastOperation,
     fetchTemplates,
     createTemplate,
     updateTemplate,
